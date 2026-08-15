@@ -23,6 +23,10 @@ const run = async (cmd: string[], cwd?: string): Promise<string> => {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
+    env: {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: "0",
+    },
   });
   const [exitCode, stdout, stderr] = await Promise.all([
     proc.exited,
@@ -38,7 +42,10 @@ const run = async (cmd: string[], cwd?: string): Promise<string> => {
 const git = (args: string[], cwd?: string): Promise<string> => {
   const cmd = ["git"];
   if (config.gitToken) {
-    cmd.push("-c", `http.extraHeader=Authorization: Bearer ${config.gitToken}`);
+    cmd.push(
+      "-c",
+      `url.https://x-access-token:${config.gitToken}@github.com/.insteadOf=https://github.com/`,
+    );
   }
   return run([...cmd, ...args], cwd);
 };
