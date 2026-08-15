@@ -48,5 +48,6 @@ install -m 644 "${APP_DIR}/deploy/${APP_NAME}.service" "${SERVICE_FILE}"
 chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}"
 
 systemctl daemon-reload
-systemctl enable --now "${APP_NAME}.service"
+systemctl enable "${APP_NAME}.service"
+systemctl restart "${APP_NAME}.service"
 systemctl --no-pager --full status "${APP_NAME}.service"
