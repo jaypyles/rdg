@@ -53,5 +53,9 @@ export const composeLogs = (
   tail = "100",
 ): Promise<string> => compose(composeFile, ["logs", "--no-color", "--tail", tail, service], nodeName);
 
-export const composeRestart = (composeFile: string, nodeName: string, service: string): Promise<string> =>
-  compose(composeFile, ["restart", service], nodeName);
+export const composeRestart = (
+  composeFile: string,
+  nodeName: string,
+  service?: string,
+): Promise<string> =>
+  compose(composeFile, service ? ["restart", service] : ["restart"], nodeName);

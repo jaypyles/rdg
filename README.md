@@ -39,6 +39,7 @@ If `RDG_TOKEN` is set, send `Authorization: Bearer <token>` on all routes except
 | POST | `/node` | Register this host |
 | POST | `/sync` | Fetch git; `compose up` only if this node's files changed |
 | GET | `/ps` | `docker compose ps` |
+| POST | `/restart` | Restart every stack on this node |
 | POST | `/services/:name/restart` | Restart one service |
 | GET | `/services/:name/logs?tail=100` | Service logs |
 
