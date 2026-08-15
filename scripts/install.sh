@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Pipeable installer. From a Debian host:
-#   curl -fsSL https://raw.githubusercontent.com/<owner>/remote-docker-gateway/main/scripts/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/jaypyles/rdg/main/scripts/install.sh | sudo bash
 # Override the clone source:
 #   curl -fsSL .../install.sh | sudo RDG_INSTALL_REPO=https://github.com/<owner>/remote-docker-gateway.git bash
 set -euo pipefail
 
-: "${RDG_INSTALL_REPO:=https://github.com/jaydenpyles/remote-docker-gateway.git}"
+: "${RDG_INSTALL_REPO:=https://github.com/jaypyles/rdg.git}"
 : "${RDG_INSTALL_BRANCH:=main}"
 
 if [[ "${EUID}" -ne 0 ]]; then
