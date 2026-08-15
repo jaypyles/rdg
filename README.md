@@ -14,8 +14,12 @@ Copy `.env.example` to `.env`. Set `RDG_COMPOSE_REPO` to the git URL that contai
 Layout expected in that repo (override with `RDG_COMPOSE_PATH`):
 
 ```text
-nodes/media/compose.yaml
+nodes/media/jellyfin.yaml
+nodes/media/jellyseerr.yaml
+nodes/otherhost/stack.yaml
 ```
+
+Each `*.yaml` / `*.yml` in the node directory is its own Compose project (`rdg-<node>-<filename>`). A commit that only changes `jellyfin.yaml` only redeploys that stack.
 
 An example stack lives in `examples/nodes/media/compose.yaml`.
 

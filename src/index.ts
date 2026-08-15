@@ -1,7 +1,7 @@
 import { composeLogs, composePs, composeRestart } from "./compose";
 import { config } from "./config";
 import { register, registeredNode } from "./register";
-import { composeFilePath, startSyncSchedule, sync } from "./sync";
+import { nodeStacks, startSyncSchedule, sync } from "./sync";
 
 const unauthorized = () => Response.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -14,6 +14,35 @@ const requireAuth = (req: Request): boolean => {
 
 const jsonError = (error: unknown, status = 400) =>
   Response.json({ error: error instanceof Error ? error.message : String(error) }, { status });
+
+const withStacks = async <T>(
+  fn: (file: string, node: string) => Promise<T>,
+): Promise<{ node: string; results: T[] }> => {
+  const { node, stacks } = await nodeStacks();
+  if (stacks.length === 0) {
+    throw new Error("No compose yaml files found for this node");
+  }
+  const results: T[] = [];
+  for (const stack of stacks) {
+    results.push(await fn(stack.file, node));
+  }
+  return { node, results };
+};
+
+const firstMatchingStack = async (
+  fn: (file: string, node: string) => Promise<string>,
+): Promise<string> => {
+  const { node, stacks } = await nodeStacks();
+  const errors: string[] = [];
+  for (const stack of stacks) {
+    try {
+      return await fn(stack.file, node);
+    } catch (error) {
+      errors.push(`${stack.project}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  throw new Error(errors.join("\n") || "No compose stacks found");
+};
 
 const server = Bun.serve({
   hostname: config.host,
@@ -62,8 +91,9 @@ const server = Bun.serve({
       GET: async (req) => {
         if (!requireAuth(req)) return unauthorized();
         try {
-          const output = await composePs(await composeFilePath());
-          return new Response(output, { headers: { "content-type": "application/json" } });
+          const { results } = await withStacks(composePs);
+          const lines = results.flatMap((chunk) => chunk.split("\n").filter(Boolean));
+          return new Response(lines.join("\n"), { headers: { "content-type": "application/json" } });
         } catch (error) {
           return jsonError(error, 500);
         }
@@ -73,7 +103,9 @@ const server = Bun.serve({
       POST: async (req) => {
         if (!requireAuth(req)) return unauthorized();
         try {
-          const output = await composeRestart(await composeFilePath(), req.params.name);
+          const output = await firstMatchingStack((file, node) =>
+            composeRestart(file, node, req.params.name),
+          );
           return Response.json({ output });
         } catch (error) {
           return jsonError(error, 500);
@@ -85,7 +117,9 @@ const server = Bun.serve({
         if (!requireAuth(req)) return unauthorized();
         try {
           const tail = new URL(req.url).searchParams.get("tail") ?? "100";
-          const output = await composeLogs(await composeFilePath(), req.params.name, tail);
+          const output = await firstMatchingStack((file, node) =>
+            composeLogs(file, node, req.params.name, tail),
+          );
           return new Response(output, { headers: { "content-type": "text/plain" } });
         } catch (error) {
           return jsonError(error, 500);

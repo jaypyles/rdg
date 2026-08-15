@@ -4,7 +4,7 @@ export const config = {
   token: Bun.env.RDG_TOKEN,
   composeRepo: Bun.env.RDG_COMPOSE_REPO,
   composeBranch: Bun.env.RDG_COMPOSE_BRANCH ?? "main",
-  composePath: Bun.env.RDG_COMPOSE_PATH ?? "nodes/{node}/compose.yaml",
+  composePath: Bun.env.RDG_COMPOSE_PATH ?? "nodes/{node}",
   gitToken: Bun.env.RDG_GIT_TOKEN,
   syncIntervalMs: Number(Bun.env.RDG_SYNC_INTERVAL_MS ?? "60000"),
 } as const;

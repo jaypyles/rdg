@@ -1,14 +1,14 @@
 /*
  * Cache the last seen commit, fetch the compose repo, and only
- * docker compose up this node when a new commit touches its files.
+ * docker compose up stacks on this node whose files changed.
  */
 
-import { mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { composeUp } from "./compose";
+import { mkdir, readdir } from "node:fs/promises";
+import { join } from "node:path";
+import { composeDownProject, composeUp, projectName } from "./compose";
 import { config } from "./config";
 import { NODE_CONFIG_PATH, registeredNode } from "./register";
-import type { SyncResult } from "./types";
+import type { ComposeStack, SyncResult } from "./types";
 
 const STACK_DIR = join(NODE_CONFIG_PATH, "stack");
 const CACHE_PATH = join(NODE_CONFIG_PATH, "compose.cache.json");
@@ -50,8 +50,15 @@ const repoUrl = (): string => {
   return config.composeRepo;
 };
 
+const isComposeFile = (path: string): boolean => /\.ya?ml$/i.test(path);
+
 const composePathFor = (nodeName: string): string =>
-  config.composePath.replaceAll("{node}", nodeName);
+  config.composePath.replaceAll("{node}", nodeName).replace(/\/$/, "");
+
+export const nodeDirFor = (nodeName: string): string => {
+  const path = composePathFor(nodeName);
+  return isComposeFile(path) ? path.slice(0, path.lastIndexOf("/")) : path;
+};
 
 const emptyResult = (node: string, extra: Partial<SyncResult> = {}): SyncResult => ({
   changed: false,
@@ -60,13 +67,30 @@ const emptyResult = (node: string, extra: Partial<SyncResult> = {}): SyncResult 
   commit: null,
   previousCommit: null,
   changedFiles: [],
+  appliedFiles: [],
   output: "",
   ...extra,
 });
 
-export const composeFilePath = async (): Promise<string> => {
+export const listComposeFiles = async (nodeName: string): Promise<string[]> => {
+  const dir = join(STACK_DIR, nodeDirFor(nodeName));
+  const entries = await readdir(dir).catch(() => null);
+  if (!entries) {
+    throw new Error(`Compose directory not found for node "${nodeName}": ${nodeDirFor(nodeName)}`);
+  }
+  return entries
+    .filter((name) => isComposeFile(name) && !name.startsWith("."))
+    .sort()
+    .map((name) => join(dir, name));
+};
+
+export const nodeStacks = async (): Promise<{ node: string; stacks: ComposeStack[] }> => {
   const { name } = await registeredNode();
-  return join(STACK_DIR, composePathFor(name));
+  const files = await listComposeFiles(name);
+  return {
+    node: name,
+    stacks: files.map((file) => ({ file, project: projectName(name, file) })),
+  };
 };
 
 export const cache = async (entry: CachedApply): Promise<void> => {
@@ -100,14 +124,6 @@ const changedFilesBetween = async (from: string, to: string): Promise<string[] |
   }
 };
 
-const affectsThisNode = (files: string[] | null, composePath: string): boolean => {
-  if (files === null) {
-    return true;
-  }
-  const nodeDir = `${dirname(composePath)}/`;
-  return files.some((file) => file === composePath || file.startsWith(nodeDir));
-};
-
 let syncing = false;
 
 export const sync = async (): Promise<SyncResult> => {
@@ -123,8 +139,7 @@ export const sync = async (): Promise<SyncResult> => {
 
     const remoteCommit = await git(["rev-parse", `origin/${config.composeBranch}`], STACK_DIR);
     const previous = await readCache();
-    const composePath = composePathFor(name);
-    const file = join(STACK_DIR, composePath);
+    const nodeDir = nodeDirFor(name);
 
     if (previous?.commit === remoteCommit) {
       return emptyResult(name, { commit: remoteCommit, previousCommit: previous.commit });
@@ -136,26 +151,52 @@ export const sync = async (): Promise<SyncResult> => {
 
     await git(["reset", "--hard", `origin/${config.composeBranch}`], STACK_DIR);
 
-    if (!(await Bun.file(file).exists())) {
-      throw new Error(`Compose file not found for node "${name}": ${composePath}`);
-    }
+    const stacks = await listComposeFiles(name);
+    const nodePrefix = `${nodeDir}/`;
+    const inNodeDir = (file: string) => file === nodeDir || file.startsWith(nodePrefix);
+    const nodeChanges = changedFiles?.filter(inNodeDir) ?? null;
+    const sharedChanged = nodeChanges?.some((file) => !isComposeFile(file)) ?? false;
 
-    const shouldApply = !previous || affectsThisNode(changedFiles, composePath);
-    let output = "";
-    if (shouldApply) {
-      output = await composeUp(file);
+    const toUp = stacks.filter((file) => {
+      if (!previous || nodeChanges === null) {
+        return true;
+      }
+      if (nodeChanges.length === 0) {
+        return false;
+      }
+      const rel = file.slice(STACK_DIR.length + 1);
+      return sharedChanged || nodeChanges.includes(rel);
+    });
+
+    const toDown =
+      nodeChanges?.filter((file) => {
+        if (!isComposeFile(file)) {
+          return false;
+        }
+        const abs = join(STACK_DIR, file);
+        return !stacks.includes(abs);
+      }) ?? [];
+
+    const outputs: string[] = [];
+    for (const file of toDown) {
+      outputs.push(await composeDownProject(name, file));
+    }
+    for (const file of toUp) {
+      outputs.push(await composeUp(file, name));
     }
 
     await cache({ timestamp: new Date().toISOString(), commit: remoteCommit });
 
+    const appliedFiles = [...toDown, ...toUp.map((file) => file.slice(STACK_DIR.length + 1))];
     return {
       changed: true,
-      applied: shouldApply,
+      applied: appliedFiles.length > 0,
       node: name,
       commit: remoteCommit,
       previousCommit: previous?.commit ?? null,
-      changedFiles: changedFiles ?? [composePath],
-      output,
+      changedFiles: changedFiles ?? stacks.map((file) => file.slice(STACK_DIR.length + 1)),
+      appliedFiles,
+      output: outputs.filter(Boolean).join("\n"),
     };
   } finally {
     syncing = false;
@@ -180,7 +221,7 @@ export const startSyncSchedule = (): void => {
       const result = await sync();
       if (result.applied) {
         console.log(
-          `sync applied ${result.node} @ ${result.commit}: ${(result.changedFiles ?? []).join(", ")}`,
+          `sync applied ${result.node} @ ${result.commit}: ${result.appliedFiles.join(", ")}`,
         );
       }
     } catch (error) {

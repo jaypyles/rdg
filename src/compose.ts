@@ -1,4 +1,4 @@
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
 
 const run = async (cmd: string[], cwd?: string): Promise<string> => {
   const proc = Bun.spawn(cmd, {
@@ -17,17 +17,41 @@ const run = async (cmd: string[], cwd?: string): Promise<string> => {
   return (stdout + stderr).trim();
 };
 
-export const compose = async (composeFile: string, args: string[]): Promise<string> =>
-  run(["docker", "compose", "-f", composeFile, ...args], dirname(composeFile));
+export const projectName = (nodeName: string, composeFile: string): string => {
+  const stack = basename(composeFile).replace(/\.ya?ml$/i, "");
+  return `rdg-${nodeName}-${stack}`.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
+};
 
-export const composeUp = (composeFile: string): Promise<string> =>
-  compose(composeFile, ["up", "-d", "--remove-orphans"]);
+export const compose = async (
+  composeFile: string,
+  args: string[],
+  nodeName: string,
+): Promise<string> =>
+  run(
+    ["docker", "compose", "-p", projectName(nodeName, composeFile), "-f", composeFile, ...args],
+    dirname(composeFile),
+  );
 
-export const composePs = (composeFile: string): Promise<string> =>
-  compose(composeFile, ["ps", "--format", "json"]);
+export const composeUp = (composeFile: string, nodeName: string): Promise<string> =>
+  compose(composeFile, ["up", "-d", "--remove-orphans"], nodeName);
 
-export const composeLogs = (composeFile: string, service: string, tail = "100"): Promise<string> =>
-  compose(composeFile, ["logs", "--no-color", "--tail", tail, service]);
+export const composeDown = (composeFile: string, nodeName: string): Promise<string> =>
+  compose(composeFile, ["down"], nodeName);
 
-export const composeRestart = (composeFile: string, service: string): Promise<string> =>
-  compose(composeFile, ["restart", service]);
+export const composeDownProject = async (nodeName: string, stackFileName: string): Promise<string> => {
+  const project = projectName(nodeName, stackFileName);
+  return run(["docker", "compose", "-p", project, "down"]);
+};
+
+export const composePs = (composeFile: string, nodeName: string): Promise<string> =>
+  compose(composeFile, ["ps", "--format", "json"], nodeName);
+
+export const composeLogs = (
+  composeFile: string,
+  nodeName: string,
+  service: string,
+  tail = "100",
+): Promise<string> => compose(composeFile, ["logs", "--no-color", "--tail", tail, service], nodeName);
+
+export const composeRestart = (composeFile: string, nodeName: string, service: string): Promise<string> =>
+  compose(composeFile, ["restart", service], nodeName);
