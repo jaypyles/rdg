@@ -34,6 +34,7 @@ mkdir -p "${APP_DIR}"
 rsync -a --delete \
   --exclude "node_modules" \
   --exclude ".git" \
+  --exclude ".config" \
   "${SOURCE_DIR}/" "${APP_DIR}/"
 
 cd "${APP_DIR}"
