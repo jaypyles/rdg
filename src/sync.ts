@@ -333,6 +333,16 @@ export const startSyncSchedule = (): void => {
             ...result.restartedServices.map((service) => `restart:${service}`),
           ].join(", ")}`,
         );
+      } else if (result.output === "sync already in progress") {
+        console.log(`sync skipped ${result.node}: already in progress`);
+      } else if (!result.changed) {
+        console.log(
+          `sync idle ${result.node} @ ${result.commit}: nothing to apply`,
+        );
+      } else {
+        console.log(
+          `sync idle ${result.node} @ ${result.commit}: no stacks or configs for this node`,
+        );
       }
     } catch (error) {
       console.error("scheduled sync failed", error);
