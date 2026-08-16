@@ -5,6 +5,8 @@ export const config = {
   composeRepo: Bun.env.RDG_COMPOSE_REPO,
   composeBranch: Bun.env.RDG_COMPOSE_BRANCH ?? "main",
   composePath: Bun.env.RDG_COMPOSE_PATH ?? "nodes/{node}",
+  configPath: Bun.env.RDG_CONFIG_PATH ?? "config/{node}",
+  sharedPath: Bun.env.RDG_SHARED_PATH ?? "shared",
   gitToken: Bun.env.RDG_GIT_TOKEN?.trim() || undefined,
   syncIntervalMs: Number(Bun.env.RDG_SYNC_INTERVAL_MS ?? "60000"),
 } as const;

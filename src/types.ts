@@ -2,6 +2,16 @@ export type Node = {
   name: string;
 };
 
+export type RemoteHost = {
+  url: string;
+  token?: string;
+};
+
+export type HostsFile = {
+  default?: string;
+  hosts: Record<string, RemoteHost>;
+};
+
 export type ComposeStack = {
   file: string;
   project: string;
@@ -15,5 +25,6 @@ export type SyncResult = {
   previousCommit: string | null;
   changedFiles: string[];
   appliedFiles: string[];
+  restartedServices: string[];
   output: string;
 };

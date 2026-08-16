@@ -4,11 +4,19 @@
   "private": true,
   "type": "module",
   "module": "src/index.ts",
+  "bin": {
+    "rdg": "src/index.ts"
+  },
   "scripts": {
-    "dev": "bun --hot src/index.ts",
-    "start": "bun src/index.ts"
+    "dev": "bun --hot src/index.ts serve",
+    "start": "bun src/index.ts serve",
+    "rdg": "bun src/index.ts",
+    "link": "bun link"
   },
   "devDependencies": {
     "@types/bun": "latest"
+  },
+  "dependencies": {
+    "clipanion": "^4.0.0-rc.4"
   }
 }

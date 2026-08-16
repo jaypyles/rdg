@@ -1,10 +1,16 @@
 import { basename, dirname } from "node:path";
+import { configDirAbs, isSharedComposeFile, sharedStackName } from "./paths";
 
-const run = async (cmd: string[], cwd?: string): Promise<string> => {
+const run = async (
+  cmd: string[],
+  cwd?: string,
+  extraEnv?: Record<string, string>,
+): Promise<string> => {
   const proc = Bun.spawn(cmd, {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
+    env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
   });
   const [exitCode, stdout, stderr] = await Promise.all([
     proc.exited,
@@ -18,7 +24,9 @@ const run = async (cmd: string[], cwd?: string): Promise<string> => {
 };
 
 export const projectName = (nodeName: string, composeFile: string): string => {
-  const stack = basename(composeFile).replace(/\.ya?ml$/i, "");
+  const stack = isSharedComposeFile(composeFile)
+    ? `shared-${sharedStackName(composeFile)}`
+    : basename(composeFile).replace(/\.ya?ml$/i, "");
   return `rdg-${nodeName}-${stack}`.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
 };
 
@@ -30,6 +38,10 @@ export const compose = async (
   run(
     ["docker", "compose", "-p", projectName(nodeName, composeFile), "-f", composeFile, ...args],
     dirname(composeFile),
+    {
+      RDG_NODE: nodeName,
+      RDG_CONFIG: configDirAbs(nodeName),
+    },
   );
 
 export const composeUp = (composeFile: string, nodeName: string): Promise<string> =>
@@ -59,3 +71,21 @@ export const composeRestart = (
   service?: string,
 ): Promise<string> =>
   compose(composeFile, service ? ["restart", service] : ["restart"], nodeName);
+
+export const composeRestartFirstMatch = async (
+  composeFiles: string[],
+  nodeName: string,
+  service: string,
+): Promise<string> => {
+  const errors: string[] = [];
+  for (const file of composeFiles) {
+    try {
+      return await composeRestart(file, nodeName, service);
+    } catch (error) {
+      errors.push(
+        `${basename(file)}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  throw new Error(errors.join("\n") || `Service "${service}" not found`);
+};
