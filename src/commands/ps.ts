@@ -1,7 +1,7 @@
 import { Command, Option } from "clipanion";
 import { request } from "../client";
 import { composePs } from "../compose";
-import { formatPsTable } from "../format-ps";
+import { formatPsTable } from "../formatters/format-ps";
 import { withStacks } from "../handlers/helpers";
 import { RemoteCommand } from "./remote";
 

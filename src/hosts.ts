@@ -27,9 +27,13 @@ const writeHosts = async (data: HostsFile): Promise<void> => {
 
 export const normalizeUrl = (url: string): string => {
   const trimmed = url.trim().replace(/\/$/, "");
+
   if (!/^https?:\/\//i.test(trimmed)) {
-    throw new Error(`Host URL must start with http:// or https:// (got "${url}")`);
+    throw new Error(
+      `Host URL must start with http:// or https:// (got "${url}")`,
+    );
   }
+
   return trimmed;
 };
 
