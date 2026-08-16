@@ -28,14 +28,17 @@ const run = async (cmd: string[], cwd?: string): Promise<string> => {
       GIT_TERMINAL_PROMPT: "0",
     },
   });
+
   const [exitCode, stdout, stderr] = await Promise.all([
     proc.exited,
     proc.stdout.text(),
     proc.stderr.text(),
   ]);
+
   if (exitCode !== 0) {
     throw new Error(stderr.trim() || stdout.trim() || `${cmd[0]} failed (${exitCode})`);
   }
+
   return stdout.trim();
 };
 
@@ -47,6 +50,7 @@ const git = (args: string[], cwd?: string): Promise<string> => {
       `url.https://x-access-token:${config.gitToken}@github.com/.insteadOf=https://github.com/`,
     );
   }
+
   return run([...cmd, ...args], cwd);
 };
 
@@ -54,6 +58,7 @@ const repoUrl = (): string => {
   if (!config.composeRepo) {
     throw new Error("Set RDG_COMPOSE_REPO to the git URL that holds Compose files");
   }
+
   return config.composeRepo;
 };
 

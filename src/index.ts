@@ -3,7 +3,8 @@ import { config } from "./config";
 import { register, registeredNode } from "./register";
 import { nodeStacks, startSyncSchedule, sync } from "./sync";
 
-const unauthorized = () => Response.json({ error: "Unauthorized" }, { status: 401 });
+const unauthorized = () =>
+  Response.json({ error: "Unauthorized" }, { status: 401 });
 
 const requireAuth = (req: Request): boolean => {
   if (!config.token) {
@@ -13,10 +14,13 @@ const requireAuth = (req: Request): boolean => {
 };
 
 const jsonError = (error: unknown, status = 400) =>
-  Response.json({ error: error instanceof Error ? error.message : String(error) }, { status });
+  Response.json(
+    { error: error instanceof Error ? error.message : String(error) },
+    { status }
+  );
 
 const withStacks = async <T>(
-  fn: (file: string, node: string) => Promise<T>,
+  fn: (file: string, node: string) => Promise<T>
 ): Promise<{ node: string; results: T[] }> => {
   const { node, stacks } = await nodeStacks();
   if (stacks.length === 0) {
@@ -30,7 +34,7 @@ const withStacks = async <T>(
 };
 
 const firstMatchingStack = async (
-  fn: (file: string, node: string) => Promise<string>,
+  fn: (file: string, node: string) => Promise<string>
 ): Promise<string> => {
   const { node, stacks } = await nodeStacks();
   const errors: string[] = [];
@@ -38,7 +42,11 @@ const firstMatchingStack = async (
     try {
       return await fn(stack.file, node);
     } catch (error) {
-      errors.push(`${stack.project}: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `${stack.project}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   }
   throw new Error(errors.join("\n") || "No compose stacks found");
@@ -67,9 +75,11 @@ const server = Bun.serve({
         if (!requireAuth(req)) return unauthorized();
         try {
           const body = (await req.json()) as { name?: string };
+
           if (!body.name) {
             return jsonError("name is required");
           }
+
           await register(body.name);
           return Response.json({ name: body.name });
         } catch (error) {
@@ -91,8 +101,13 @@ const server = Bun.serve({
       POST: async (req) => {
         if (!requireAuth(req)) return unauthorized();
         try {
-          const { node, results } = await withStacks((file, name) => composeRestart(file, name));
-          return Response.json({ node, output: results.filter(Boolean).join("\n") });
+          const { node, results } = await withStacks((file, name) =>
+            composeRestart(file, name)
+          );
+          return Response.json({
+            node,
+            output: results.filter(Boolean).join("\n"),
+          });
         } catch (error) {
           return jsonError(error, 500);
         }
@@ -103,8 +118,12 @@ const server = Bun.serve({
         if (!requireAuth(req)) return unauthorized();
         try {
           const { results } = await withStacks(composePs);
-          const lines = results.flatMap((chunk) => chunk.split("\n").filter(Boolean));
-          return new Response(lines.join("\n"), { headers: { "content-type": "application/json" } });
+          const lines = results.flatMap((chunk) =>
+            chunk.split("\n").filter(Boolean)
+          );
+          return new Response(lines.join("\n"), {
+            headers: { "content-type": "application/json" },
+          });
         } catch (error) {
           return jsonError(error, 500);
         }
@@ -115,7 +134,7 @@ const server = Bun.serve({
         if (!requireAuth(req)) return unauthorized();
         try {
           const output = await firstMatchingStack((file, node) =>
-            composeRestart(file, node, req.params.name),
+            composeRestart(file, node, req.params.name)
           );
           return Response.json({ output });
         } catch (error) {
@@ -129,9 +148,11 @@ const server = Bun.serve({
         try {
           const tail = new URL(req.url).searchParams.get("tail") ?? "100";
           const output = await firstMatchingStack((file, node) =>
-            composeLogs(file, node, req.params.name, tail),
+            composeLogs(file, node, req.params.name, tail)
           );
-          return new Response(output, { headers: { "content-type": "text/plain" } });
+          return new Response(output, {
+            headers: { "content-type": "text/plain" },
+          });
         } catch (error) {
           return jsonError(error, 500);
         }
