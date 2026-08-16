@@ -6,9 +6,7 @@ export const getPs = async (req: Request) => {
 
   try {
     const { results } = await withStacks(composePs);
-    const lines = results.flatMap((chunk) => chunk.split("\n").filter(Boolean));
-
-    return new Response(lines.join("\n"), {
+    return new Response(results.filter(Boolean).join("\n"), {
       headers: { "content-type": "application/json" },
     });
   } catch (error) {

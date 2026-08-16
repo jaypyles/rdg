@@ -5,6 +5,7 @@ const run = async (
   cmd: string[],
   cwd?: string,
   extraEnv?: Record<string, string>,
+  stdoutOnly = false,
 ): Promise<string> => {
   const proc = Bun.spawn(cmd, {
     cwd,
@@ -20,7 +21,7 @@ const run = async (
   if (exitCode !== 0) {
     throw new Error(stderr.trim() || stdout.trim() || `${cmd.join(" ")} failed (${exitCode})`);
   }
-  return (stdout + stderr).trim();
+  return (stdoutOnly ? stdout : stdout + stderr).trim();
 };
 
 export const projectName = (nodeName: string, composeFile: string): string => {
@@ -34,6 +35,7 @@ export const compose = async (
   composeFile: string,
   args: string[],
   nodeName: string,
+  stdoutOnly = false,
 ): Promise<string> =>
   run(
     ["docker", "compose", "-p", projectName(nodeName, composeFile), "-f", composeFile, ...args],
@@ -42,6 +44,7 @@ export const compose = async (
       RDG_NODE: nodeName,
       RDG_CONFIG: configDirAbs(nodeName),
     },
+    stdoutOnly,
   );
 
 export const composeUp = (composeFile: string, nodeName: string): Promise<string> =>
@@ -56,7 +59,7 @@ export const composeDownProject = async (nodeName: string, stackFileName: string
 };
 
 export const composePs = (composeFile: string, nodeName: string): Promise<string> =>
-  compose(composeFile, ["ps", "--format", "json"], nodeName);
+  compose(composeFile, ["ps", "--format", "json"], nodeName, true);
 
 export const composeLogs = (
   composeFile: string,
