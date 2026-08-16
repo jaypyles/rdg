@@ -18,9 +18,11 @@ const run = async (
     proc.stdout.text(),
     proc.stderr.text(),
   ]);
+
   if (exitCode !== 0) {
     throw new Error(stderr.trim() || stdout.trim() || `${cmd.join(" ")} failed (${exitCode})`);
   }
+
   return (stdoutOnly ? stdout : stdout + stderr).trim();
 };
 
@@ -28,6 +30,7 @@ export const projectName = (nodeName: string, composeFile: string): string => {
   const stack = isSharedComposeFile(composeFile)
     ? `shared-${sharedStackName(composeFile)}`
     : basename(composeFile).replace(/\.ya?ml$/i, "");
+
   return `rdg-${nodeName}-${stack}`.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
 };
 

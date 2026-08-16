@@ -13,9 +13,11 @@ export class ApiError extends Error {
 
 const headersFor = (host: RemoteHost, init?: RequestInit["headers"]): Headers => {
   const headers = new Headers(init);
+
   if (host.token) {
     headers.set("authorization", `Bearer ${host.token}`);
   }
+
   return headers;
 };
 
