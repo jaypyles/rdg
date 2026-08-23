@@ -12,8 +12,9 @@ export const getServiceLogs = async (
   if (!requireAuth(req)) return unauthorized();
   try {
     const tail = new URL(req.url).searchParams.get("tail") ?? "100";
-    const output = await firstMatchingStack((file, node) =>
-      composeLogs(file, node, req.params.name, tail)
+    const output = await firstMatchingStack(
+      (file, node, service) => composeLogs(file, node, service, tail),
+      req.params.name,
     );
     return new Response(output, {
       headers: { "content-type": "text/plain" },

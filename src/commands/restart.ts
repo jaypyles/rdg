@@ -39,8 +39,9 @@ export class RestartCommand extends RemoteCommand {
     }
 
     if (this.service) {
-      const output = await firstMatchingStack((file, node) =>
-        composeRestart(file, node, this.service, this.pull),
+      const output = await firstMatchingStack(
+        (file, node, service) => composeRestart(file, node, service, this.pull),
+        this.service,
       );
       this.context.stdout.write(`${output}\n`);
       return;

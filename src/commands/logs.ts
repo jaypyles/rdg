@@ -30,8 +30,9 @@ export class LogsCommand extends RemoteCommand {
       return;
     }
 
-    const output = await firstMatchingStack((file, node) =>
-      composeLogs(file, node, this.service, this.tail),
+    const output = await firstMatchingStack(
+      (file, node, service) => composeLogs(file, node, service, this.tail),
+      this.service,
     );
 
     this.context.stdout.write(`${output}\n`);

@@ -1,5 +1,6 @@
 import { basename, dirname } from "node:path";
 import { configDirAbs, isSharedComposeFile, sharedStackName } from "./paths";
+import type { ComposeStack } from "./types";
 
 const run = async (
   cmd: string[],
@@ -35,6 +36,37 @@ export const projectName = (nodeName: string, composeFile: string): string => {
   return `rdg-${nodeName}-${stack}`.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
 };
 
+const normalizeName = (value: string): string =>
+  value.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase();
+
+const stackAliases = (stack: ComposeStack): string[] => {
+  const fileKey = basename(stack.file).replace(/\.ya?ml$/i, "");
+  const aliases = [stack.project, fileKey];
+  if (isSharedComposeFile(stack.file)) {
+    aliases.push(sharedStackName(stack.file), `shared-${sharedStackName(stack.file)}`);
+  }
+  return aliases.map(normalizeName);
+};
+
+export const matchStack = (
+  stacks: ComposeStack[],
+  name: string,
+): ComposeStack | null => {
+  const needle = normalizeName(name);
+  const hits = stacks.filter((stack) => {
+    const aliases = stackAliases(stack);
+    return aliases.includes(needle) || stack.project.toLowerCase().endsWith(`-${needle}`);
+  });
+
+  if (hits.length > 1) {
+    throw new Error(
+      `Ambiguous name "${name}" matches ${hits.map((stack) => stack.project).join(", ")}`,
+    );
+  }
+
+  return hits[0] ?? null;
+};
+
 export const compose = async (
   composeFile: string,
   args: string[],
@@ -68,9 +100,14 @@ export const composePs = (composeFile: string, nodeName: string): Promise<string
 export const composeLogs = (
   composeFile: string,
   nodeName: string,
-  service: string,
+  service?: string,
   tail = "100",
-): Promise<string> => compose(composeFile, ["logs", "--no-color", "--tail", tail, service], nodeName);
+): Promise<string> =>
+  compose(
+    composeFile,
+    ["logs", "--no-color", "--tail", tail, ...(service ? [service] : [])],
+    nodeName,
+  );
 
 export const composeRestart = (
   composeFile: string,
@@ -96,6 +133,15 @@ export const composeRestartFirstMatch = async (
   nodeName: string,
   service: string,
 ): Promise<string> => {
+  const stacks = composeFiles.map((file) => ({
+    file,
+    project: projectName(nodeName, file),
+  }));
+  const stack = matchStack(stacks, service);
+  if (stack) {
+    return composeRestart(stack.file, nodeName);
+  }
+
   const errors: string[] = [];
   for (const file of composeFiles) {
     try {

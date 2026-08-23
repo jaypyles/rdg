@@ -1,3 +1,5 @@
+import { basename } from "node:path";
+import { matchStack } from "../compose";
 import { config } from "../config";
 import { nodeStacks } from "../sync";
 
@@ -42,14 +44,23 @@ export const withStacks = async <T>(
 };
 
 export const firstMatchingStack = async (
-  fn: (file: string, node: string) => Promise<string>,
+  fn: (file: string, node: string, service?: string) => Promise<string>,
+  name?: string,
 ): Promise<string> => {
   const { node, stacks } = await nodeStacks();
+
+  if (name) {
+    const stack = matchStack(stacks, name);
+    if (stack) {
+      return fn(stack.file, node);
+    }
+  }
+
   const errors: string[] = [];
 
   for (const stack of stacks) {
     try {
-      return await fn(stack.file, node);
+      return await fn(stack.file, node, name);
     } catch (error) {
       errors.push(
         `${stack.project}: ${
@@ -59,5 +70,13 @@ export const firstMatchingStack = async (
     }
   }
 
-  throw new Error(errors.join("\n") || "No compose stacks found");
+  const available = stacks
+    .map((stack) => basename(stack.file).replace(/\.ya?ml$/i, ""))
+    .join(", ");
+  throw new Error(
+    errors.join("\n") ||
+      (name
+        ? `No stack or service named "${name}" (stacks: ${available})`
+        : "No compose stacks found"),
+  );
 };

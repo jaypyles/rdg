@@ -13,8 +13,9 @@ export const postServiceRestart = async (
   if (!requireAuth(req)) return unauthorized();
   try {
     const pull = wantsPull(req);
-    const output = await firstMatchingStack((file, node) =>
-      composeRestart(file, node, req.params.name, pull)
+    const output = await firstMatchingStack(
+      (file, node, service) => composeRestart(file, node, service, pull),
+      req.params.name,
     );
     return Response.json({ output, pull });
   } catch (error) {
