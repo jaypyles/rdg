@@ -18,6 +18,11 @@ export const jsonError = (error: unknown, status = 400) =>
     { status },
   );
 
+export const wantsPull = (req: Request): boolean => {
+  const pull = new URL(req.url).searchParams.get("pull");
+  return pull === "1" || pull === "true";
+};
+
 export const withStacks = async <T>(
   fn: (file: string, node: string) => Promise<T>,
 ): Promise<{ node: string; results: T[] }> => {

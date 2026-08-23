@@ -105,11 +105,13 @@ export const listComposeFiles = async (nodeName: string): Promise<string[]> => {
   const nodeFiles = await listNodeComposeFiles(nodeName);
   const sharedFiles = await listSharedComposeFiles();
   const files = [...sharedFiles, ...nodeFiles];
+
   if (files.length === 0) {
     throw new Error(
       `No compose yaml files found for node "${nodeName}" (checked ${nodeDirFor(nodeName)} and ${sharedPathFor()})`,
     );
   }
+
   return files;
 };
 

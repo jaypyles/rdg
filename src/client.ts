@@ -1,6 +1,7 @@
 import type { RemoteHost } from "./types";
 
 const timeoutMs = Number(Bun.env.RDG_HTTP_TIMEOUT_MS ?? "10000");
+export const pullTimeoutMs = Number(Bun.env.RDG_PULL_TIMEOUT_MS ?? "600000");
 
 export class ApiError extends Error {
   constructor(
@@ -36,6 +37,7 @@ export const request = async (
   host: RemoteHost,
   path: string,
   init: RequestInit = {},
+  timeout = timeoutMs,
 ): Promise<string> => {
   const url = `${host.url.replace(/\/$/, "")}${path}`;
   let res: Response;
@@ -43,7 +45,7 @@ export const request = async (
     res = await fetch(url, {
       ...init,
       headers: headersFor(host, init.headers),
-      signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+      signal: init.signal ?? AbortSignal.timeout(timeout),
     });
   } catch (error) {
     throw connectError(url, error);
@@ -69,11 +71,12 @@ export const requestJson = async <T>(
   host: RemoteHost,
   path: string,
   init: RequestInit = {},
+  timeout = timeoutMs,
 ): Promise<T> => {
   const headers = headersFor(host, init.headers);
   if (!headers.has("content-type") && init.body) {
     headers.set("content-type", "application/json");
   }
-  const text = await request(host, path, { ...init, headers });
+  const text = await request(host, path, { ...init, headers }, timeout);
   return JSON.parse(text) as T;
 };

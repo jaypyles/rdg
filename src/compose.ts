@@ -13,6 +13,7 @@ const run = async (
     stderr: "pipe",
     env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
   });
+
   const [exitCode, stdout, stderr] = await Promise.all([
     proc.exited,
     proc.stdout.text(),
@@ -75,8 +76,20 @@ export const composeRestart = (
   composeFile: string,
   nodeName: string,
   service?: string,
-): Promise<string> =>
-  compose(composeFile, service ? ["restart", service] : ["restart"], nodeName);
+  pull = false,
+): Promise<string> => {
+  if (pull) {
+    return compose(
+      composeFile,
+      service
+        ? ["up", "-d", "--pull", "always", "--force-recreate", "--no-deps", service]
+        : ["up", "-d", "--pull", "always", "--force-recreate", "--remove-orphans"],
+      nodeName,
+    );
+  }
+
+  return compose(composeFile, service ? ["restart", service] : ["restart"], nodeName);
+};
 
 export const composeRestartFirstMatch = async (
   composeFiles: string[],

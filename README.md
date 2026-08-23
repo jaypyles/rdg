@@ -25,6 +25,7 @@ rdg host use media
 rdg sync
 rdg -H other ps
 rdg -H media restart nginx
+rdg restart nginx --pull
 rdg logs nginx --tail 100
 ```
 
@@ -84,11 +85,13 @@ If `RDG_TOKEN` is set, send `Authorization: Bearer <token>` on all routes except
 | POST   | `/node`                         | Register this host                                        |
 | POST   | `/sync`                         | Fetch git; `compose up` only if this node's files changed |
 | GET    | `/ps`                           | `docker compose ps`                                       |
-| POST   | `/restart`                      | Restart every stack on this node                          |
-| POST   | `/services/:name/restart`       | Restart one service                                       |
+| POST   | `/restart`                      | Restart every stack on this node (`?pull=true` to pull)   |
+| POST   | `/services/:name/restart`       | Restart one service (`?pull=true` to pull and recreate)   |
 | GET    | `/services/:name/logs?tail=100` | Service logs                                              |
 
 On an interval (`RDG_SYNC_INTERVAL_MS`, default 60s) the process caches the last commit, fetches the repo, and if `origin/<branch>` moved, diffs files. It only runs `docker compose up -d --remove-orphans` when this node's compose files or a shared stack changed, and `docker compose restart <service>` when that service's files under `config/<node>/<service>/` changed. Set the interval to `0` to disable the schedule. Manual `POST /sync` still works.
+
+`rdg restart` recycles the existing container. For images tagged `latest` (or any tag that was republished), pass `--pull` so Compose pulls and recreates: `rdg restart nginx --pull`. Remote pulls wait up to `RDG_PULL_TIMEOUT_MS` (default 10 minutes).
 
 ## Debian systemd install
 
