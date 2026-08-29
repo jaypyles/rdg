@@ -56,13 +56,19 @@ const yamlFilesIn = async (dir: string): Promise<string[]> => {
     return [];
   }
   return entries
-    .filter((entry) => entry.isFile() && isComposeFile(entry.name) && !entry.name.startsWith("."))
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        isComposeFile(entry.name) &&
+        !entry.name.startsWith("."),
+    )
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((entry) => join(dir, entry.name));
 };
 
-export const listNodeComposeFiles = async (nodeName: string): Promise<string[]> =>
-  yamlFilesIn(join(STACK_DIR, nodeDirFor(nodeName)));
+export const listNodeComposeFiles = async (
+  nodeName: string,
+): Promise<string[]> => yamlFilesIn(join(STACK_DIR, nodeDirFor(nodeName)));
 
 export const listSharedComposeFiles = async (): Promise<string[]> => {
   const dir = join(STACK_DIR, sharedPathFor());
@@ -95,7 +101,10 @@ export const serviceFromConfigFile = (
     return null;
   }
 
-  const [service] = file.slice(prefix.length).split("/");
+  const rest = file.slice(prefix.length);
+  const slash = rest.indexOf("/");
+  const service =
+    slash === -1 ? rest.replace(/\.[^.]+$/, "") : rest.slice(0, slash);
 
   if (!service || service.startsWith(".")) {
     return null;
@@ -104,10 +113,12 @@ export const serviceFromConfigFile = (
   return service;
 };
 
-export const listConfigServices = async (nodeName: string): Promise<string[]> => {
-  const entries = await readdir(configDirAbs(nodeName), { withFileTypes: true }).catch(
-    () => null,
-  );
+export const listConfigServices = async (
+  nodeName: string,
+): Promise<string[]> => {
+  const entries = await readdir(configDirAbs(nodeName), {
+    withFileTypes: true,
+  }).catch(() => null);
 
   if (!entries) {
     return [];
