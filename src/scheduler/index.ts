@@ -8,3 +8,4 @@ export {
   type Scheduler,
 } from "./core";
 export { startScheduledTasks } from "./tasks";
+export { runMaintenance, type MaintenanceResult } from "./tasks/maintenance";

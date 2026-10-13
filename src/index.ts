@@ -7,6 +7,7 @@ import {
   HostUseCommand,
 } from "./commands/host";
 import { LogsCommand } from "./commands/logs";
+import { MaintenanceCommand } from "./commands/maintenance";
 import { NodeCommand } from "./commands/node";
 import { PsCommand } from "./commands/ps";
 import { RegisterCommand } from "./commands/register";
@@ -30,6 +31,7 @@ cli.register(ServeCommand);
 cli.register(RegisterCommand);
 cli.register(NodeCommand);
 cli.register(SyncCommand);
+cli.register(MaintenanceCommand);
 cli.register(PsCommand);
 cli.register(RestartCommand);
 cli.register(LogsCommand);

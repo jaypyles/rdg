@@ -6,9 +6,17 @@ import { msUntilNextLocalTime, scheduler } from "../core";
 
 const TASK_ID = "maintenance";
 
+export type MaintenanceResult = {
+  node: string;
+  stopped: number;
+  started: number;
+  commandRan: boolean;
+  output: string;
+};
+
 const pad = (n: number): string => String(n).padStart(2, "0");
 
-const runMaintenanceCmd = async (cmd: string): Promise<void> => {
+const runMaintenanceCmd = async (cmd: string): Promise<string> => {
   console.log(`maintenance running: ${cmd}`);
 
   const proc = Bun.spawn(["bash", "-lc", cmd], {
@@ -21,6 +29,68 @@ const runMaintenanceCmd = async (cmd: string): Promise<void> => {
 
   if (exitCode !== 0) {
     throw new Error(`maintenance command failed (${exitCode}): ${cmd}`);
+  }
+
+  return cmd;
+};
+
+let maintaining = false;
+
+export const runMaintenance = async (): Promise<MaintenanceResult> => {
+  if (maintaining) {
+    const { name } = await registeredNode();
+
+    return {
+      node: name,
+      stopped: 0,
+      started: 0,
+      commandRan: false,
+      output: "maintenance already in progress",
+    };
+  }
+
+  maintaining = true;
+
+  try {
+    const { name: node } = await registeredNode();
+    const files = await listComposeFiles(node);
+
+    console.log(`maintenance stopping ${files.length} stack(s) on ${node}`);
+
+    for (const file of [...files].reverse()) {
+      await composeDown(file, node);
+    }
+
+    let commandRan = false;
+
+    try {
+      if (config.maintenanceCmd) {
+        await runMaintenanceCmd(config.maintenanceCmd);
+        commandRan = true;
+      } else {
+        console.log("maintenance skipped command: RDG_MAINTENANCE_CMD unset");
+      }
+    } finally {
+      console.log(`maintenance starting ${files.length} stack(s) on ${node}`);
+
+      for (const file of files) {
+        await composeUp(file, node);
+      }
+    }
+
+    console.log(`maintenance complete on ${node}`);
+
+    return {
+      node,
+      stopped: files.length,
+      started: files.length,
+      commandRan,
+      output: commandRan
+        ? `ran ${config.maintenanceCmd}`
+        : "RDG_MAINTENANCE_CMD unset",
+    };
+  } finally {
+    maintaining = false;
   }
 };
 
@@ -54,37 +124,13 @@ export const startMaintenance = (): void => {
       console.error("scheduled maintenance failed", error);
     },
     run: async () => {
-      let node: string;
-
       try {
-        ({ name: node } = await registeredNode());
+        await registeredNode();
       } catch {
         return;
       }
 
-      const files = await listComposeFiles(node);
-
-      console.log(`maintenance stopping ${files.length} stack(s) on ${node}`);
-
-      for (const file of [...files].reverse()) {
-        await composeDown(file, node);
-      }
-
-      try {
-        if (config.maintenanceCmd) {
-          await runMaintenanceCmd(config.maintenanceCmd);
-        } else {
-          console.log("maintenance skipped command: RDG_MAINTENANCE_CMD unset");
-        }
-      } finally {
-        console.log(`maintenance starting ${files.length} stack(s) on ${node}`);
-
-        for (const file of files) {
-          await composeUp(file, node);
-        }
-      }
-
-      console.log(`maintenance complete on ${node}`);
+      await runMaintenance();
     },
   });
 };

@@ -4,6 +4,7 @@ import { getNode, postNode } from "./handlers/node";
 import { getPs } from "./handlers/ps";
 import { postRestart } from "./handlers/restart";
 import { root } from "./handlers/root";
+import { postMaintenance } from "./handlers/maintenance";
 import { getServiceLogs } from "./handlers/service-logs";
 import { postServiceRestart } from "./handlers/service-restart";
 import { postSync } from "./handlers/sync";
@@ -22,6 +23,9 @@ export const startServer = () => {
       },
       "/sync": {
         POST: postSync,
+      },
+      "/maintenance": {
+        POST: postMaintenance,
       },
       "/restart": {
         POST: postRestart,
