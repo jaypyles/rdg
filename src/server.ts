@@ -10,10 +10,24 @@ import { postServiceRestart } from "./handlers/service-restart";
 import { postSync } from "./handlers/sync";
 import { startScheduledTasks } from "./scheduler";
 
+const noIdleTimeout = <Req extends Request>(
+  handler: (req: Req) => Response | Promise<Response>,
+) => {
+  return (
+    req: Req,
+    server: { timeout: (req: Request, seconds: number) => void },
+  ) => {
+    server.timeout(req, 0);
+    return handler(req);
+  };
+};
+
 export const startServer = () => {
   const server = Bun.serve({
     hostname: config.host,
     port: config.port,
+    // Long handlers (sync / maintenance / pull) write nothing until done.
+    idleTimeout: 0,
     routes: {
       "/": root,
       "/health": health,
@@ -22,19 +36,19 @@ export const startServer = () => {
         POST: postNode,
       },
       "/sync": {
-        POST: postSync,
+        POST: noIdleTimeout(postSync),
       },
       "/maintenance": {
-        POST: postMaintenance,
+        POST: noIdleTimeout(postMaintenance),
       },
       "/restart": {
-        POST: postRestart,
+        POST: noIdleTimeout(postRestart),
       },
       "/ps": {
         GET: getPs,
       },
       "/services/:name/restart": {
-        POST: postServiceRestart,
+        POST: noIdleTimeout(postServiceRestart),
       },
       "/services/:name/logs": {
         GET: getServiceLogs,

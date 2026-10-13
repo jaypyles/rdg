@@ -14,13 +14,15 @@ EnvironmentFile=-/etc/remote-docker-gateway.env
 ExecStart=/usr/local/bin/bun src/index.ts serve
 Restart=on-failure
 RestartSec=5
-TimeoutStopSec=30
+# Maintenance (rclone) can run for a long time; don't kill mid-backup on stop.
+TimeoutStopSec=120
 KillMode=mixed
 SyslogIdentifier=remote-docker-gateway
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=read-only
+# false: rclone needs to read/write ~/.config/rclone and ~/.cache under the service user home.
+ProtectHome=false
 ReadWritePaths=/opt/remote-docker-gateway
 
 [Install]
