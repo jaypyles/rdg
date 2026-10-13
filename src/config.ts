@@ -9,4 +9,9 @@ export const config = {
   sharedPath: Bun.env.RDG_SHARED_PATH ?? "shared",
   gitToken: Bun.env.RDG_GIT_TOKEN?.trim() || undefined,
   syncIntervalMs: Number(Bun.env.RDG_SYNC_INTERVAL_MS ?? "60000"),
+  /** Local hour for daily maintenance (stop/start stacks). Set < 0 to disable. */
+  maintenanceHour: Number(Bun.env.RDG_MAINTENANCE_HOUR ?? "3"),
+  maintenanceMinute: Number(Bun.env.RDG_MAINTENANCE_MINUTE ?? "0"),
+  /** Shell command run between stop and start (e.g. rclone sync ...). */
+  maintenanceCmd: Bun.env.RDG_MAINTENANCE_CMD?.trim() || undefined,
 } as const;

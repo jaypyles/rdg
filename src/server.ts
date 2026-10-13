@@ -7,7 +7,7 @@ import { root } from "./handlers/root";
 import { getServiceLogs } from "./handlers/service-logs";
 import { postServiceRestart } from "./handlers/service-restart";
 import { postSync } from "./handlers/sync";
-import { startSyncSchedule } from "./sync";
+import { startScheduledTasks } from "./scheduler";
 
 export const startServer = () => {
   const server = Bun.serve({
@@ -46,6 +46,6 @@ export const startServer = () => {
   });
 
   console.log(`remote-docker-gateway listening on ${server.url}`);
-  startSyncSchedule();
+  startScheduledTasks();
   return server;
 };
