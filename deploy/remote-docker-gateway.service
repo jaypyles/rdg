@@ -11,6 +11,9 @@ Group=rdg
 SupplementaryGroups=docker
 WorkingDirectory=/opt/remote-docker-gateway
 EnvironmentFile=-/etc/remote-docker-gateway.env
+# Keep node/stack state under the app dir regardless of User=.
+# HOME stays the service user's home so rclone finds ~/.config/rclone.
+Environment=XDG_CONFIG_HOME=/opt/remote-docker-gateway/.config
 ExecStart=/usr/local/bin/bun src/index.ts serve
 Restart=on-failure
 RestartSec=5

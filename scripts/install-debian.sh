@@ -96,16 +96,19 @@ sed \
   -e "s|^ReadWritePaths=.*|ReadWritePaths=${READ_WRITE_PATHS}|" \
   "${APP_DIR}/deploy/${APP_NAME}.service" > "${SERVICE_FILE}"
 
-# Ensure HOME is the real user home (rclone, etc).
+# HOME = real user home (rclone). XDG_CONFIG_HOME stays under APP_DIR
+# (set in the unit) so node.json / compose cache survive user changes.
 if ! grep -q '^Environment=HOME=' "${SERVICE_FILE}"; then
-  sed -i "/^EnvironmentFile=/a Environment=HOME=${SERVICE_HOME}" "${SERVICE_FILE}"
+  sed -i "/^Environment=XDG_CONFIG_HOME=/a Environment=HOME=${SERVICE_HOME}" "${SERVICE_FILE}"
 fi
 
 chmod 644 "${SERVICE_FILE}"
 
 chown -R "${SERVICE_USER}:${SERVICE_GROUP}" "${APP_DIR}"
 
-echo "Installing ${APP_NAME} to run as ${SERVICE_USER}:${SERVICE_GROUP} (HOME=${SERVICE_HOME})"
+echo "Installing ${APP_NAME} to run as ${SERVICE_USER}:${SERVICE_GROUP}"
+echo "  HOME=${SERVICE_HOME}"
+echo "  XDG_CONFIG_HOME=${APP_DIR}/.config"
 
 systemctl daemon-reload
 systemctl enable "${APP_NAME}.service"
