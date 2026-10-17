@@ -1,30 +1,24 @@
 #!/usr/bin/env bash
-# Archive volumes and upload to rclone remote, keeping the last N dated backups.
-# Optional Discord notify: set DISCORD_WEBHOOK_URL.
+# Archive volumes into a local backups folder and keep the last N dated tars.
+# Optional Discord notify: set DISCORD_WEBHOOK_URL in the environment.
 #
 # RDG_MAINTENANCE_CMD=/home/jayden/scripts/backup.sh
 set -euo pipefail
 
 VOLUMES_DIR="${VOLUMES_DIR:-/home/jayden/volumes}"
-TMP_DIR="${TMP_DIR:-/home/jayden/tmp}"
-REMOTE="${REMOTE:-gdrive:}"
+BACKUP_DIR="${BACKUP_DIR:-/home/jayden/backups}"
 KEEP="${KEEP:-5}"
 PREFIX="${PREFIX:-volumes}"
 DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
 
-# Normalize to "remote:" (no trailing slash).
-REMOTE="${REMOTE%/}"
-[[ "${REMOTE}" == *: ]] || REMOTE="${REMOTE}:"
-
 DATE="$(date +%Y-%m-%d)"
-ARCHIVE="${TMP_DIR}/${PREFIX}-${DATE}.tar.gz"
-DEST="${REMOTE}${PREFIX}-${DATE}.tar.gz"
+ARCHIVE="${BACKUP_DIR}/${PREFIX}-${DATE}.tar.gz"
 HOST="$(hostname -s 2>/dev/null || hostname)"
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 START_EPOCH="$(date +%s)"
+ARCHIVE_SIZE="n/a"
 
 json_escape() {
-  # Escape a string for JSON (no surrounding quotes).
   local s=${1-}
   s=${s//\\/\\\\}
   s=${s//\"/\\\"}
@@ -46,7 +40,7 @@ discord_embed() {
   local elapsed=$(( $(date +%s) - START_EPOCH ))
   local mins=$((elapsed / 60))
   local secs=$((elapsed % 60))
-  local size="${ARCHIVE_SIZE:-n/a}"
+  local size="${ARCHIVE_SIZE}"
 
   if [[ "${size}" == "n/a" && -f "${ARCHIVE}" ]]; then
     size="$(du -h "${ARCHIVE}" | awk '{print $1}')"
@@ -64,7 +58,7 @@ discord_embed() {
       {"name": "Host", "value": "$(json_escape "${HOST}")", "inline": true},
       {"name": "Duration", "value": "${mins}m ${secs}s", "inline": true},
       {"name": "Size", "value": "$(json_escape "${size}")", "inline": true},
-      {"name": "Destination", "value": "$(json_escape "${DEST}")", "inline": false},
+      {"name": "Archive", "value": "$(json_escape "${ARCHIVE}")", "inline": false},
       {"name": "Started", "value": "$(json_escape "${STARTED_AT}")", "inline": true},
       {"name": "Keep", "value": "${KEEP} backups", "inline": true}
     ]
@@ -91,7 +85,7 @@ if [[ ! -d "${VOLUMES_DIR}" ]]; then
   exit 1
 fi
 
-mkdir -p "${TMP_DIR}"
+mkdir -p "${BACKUP_DIR}"
 
 PARENT="$(dirname "${VOLUMES_DIR}")"
 NAME="$(basename "${VOLUMES_DIR}")"
@@ -100,26 +94,11 @@ echo "archiving ${VOLUMES_DIR} -> ${ARCHIVE}"
 tar -C "${PARENT}" -czf "${ARCHIVE}" "${NAME}"
 
 ARCHIVE_SIZE="$(du -h "${ARCHIVE}" | awk '{print $1}')"
+echo "archive ready (${ARCHIVE_SIZE}): ${ARCHIVE}"
 
-echo "uploading ${ARCHIVE} -> ${DEST}"
-rclone copyto "${ARCHIVE}" "${DEST}" \
-  -P \
-  -v \
-  --stats 1m \
-  --drive-chunk-size 256M \
-  --buffer-size 64M \
-  --transfers 1 \
-  --checkers 1 \
-  --retries 1 \
-  --low-level-retries 3
-
-echo "removing local archive ${ARCHIVE}"
-rm -f "${ARCHIVE}"
-
-echo "pruning ${REMOTE} to last ${KEEP} ${PREFIX}-*.tar.gz"
+echo "pruning ${BACKUP_DIR} to last ${KEEP} ${PREFIX}-*.tar.gz"
 mapfile -t OLD < <(
-  rclone lsf "${REMOTE}" --files-only \
-    | grep "^${PREFIX}-.*\.tar\.gz$" \
+  find "${BACKUP_DIR}" -maxdepth 1 -type f -name "${PREFIX}-*.tar.gz" -printf '%f\n' \
     | sort -r \
     | tail -n "+$((KEEP + 1))"
 )
@@ -127,15 +106,14 @@ mapfile -t OLD < <(
 DELETED=0
 for file in "${OLD[@]:-}"; do
   [[ -z "${file}" ]] && continue
-  echo "deleting ${REMOTE}${file}"
-  rclone delete "${REMOTE}${file}"
+  echo "deleting ${BACKUP_DIR}/${file}"
+  rm -f "${BACKUP_DIR}/${file}"
   DELETED=$((DELETED + 1))
 done
 
 echo "backup complete"
 
-# Size already removed locally — use captured value in embed fields via description.
 discord_embed \
   "Backup complete" \
-  "Uploaded **${PREFIX}-${DATE}.tar.gz** (${ARCHIVE_SIZE}) to ${DEST}. Pruned ${DELETED} old backup(s)." \
+  "Wrote **${PREFIX}-${DATE}.tar.gz** (${ARCHIVE_SIZE}) to ${BACKUP_DIR}. Pruned ${DELETED} old backup(s)." \
   5763719
