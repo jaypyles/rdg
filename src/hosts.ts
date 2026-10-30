@@ -29,9 +29,7 @@ export const normalizeUrl = (url: string): string => {
   const trimmed = url.trim().replace(/\/$/, "");
 
   if (!/^https?:\/\//i.test(trimmed)) {
-    throw new Error(
-      `Host URL must start with http:// or https:// (got "${url}")`,
-    );
+    throw new Error(`Host URL must start with http:// or https:// (got "${url}")`);
   }
 
   return trimmed;
@@ -41,9 +39,7 @@ export const getHost = async (name: string): Promise<RemoteHost> => {
   const { hosts } = await readHosts();
   const host = hosts[name];
   if (!host) {
-    throw new Error(
-      `Unknown host "${name}". Add it with: rdg host add ${name} <url>`,
-    );
+    throw new Error(`Unknown host "${name}". Add it with: rdg host add ${name} <url>`);
   }
   return host;
 };
@@ -90,14 +86,9 @@ export const setDefaultHost = async (name: string): Promise<HostsFile> => {
   return data;
 };
 
-export type Target =
-  | { kind: "local" }
-  | { kind: "remote"; name: string; host: RemoteHost };
+export type Target = { kind: "local" } | { kind: "remote"; name: string; host: RemoteHost };
 
-export const resolveTarget = async (opts: {
-  host?: string;
-  local?: boolean;
-}): Promise<Target> => {
+export const resolveTarget = async (opts: { host?: string; local?: boolean }): Promise<Target> => {
   if (opts.local && opts.host) {
     throw new Error("Use either --host or --local, not both");
   }

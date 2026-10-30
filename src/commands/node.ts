@@ -13,9 +13,7 @@ export class NodeCommand extends RemoteCommand {
   async execute() {
     const target = await this.target();
     const node =
-      target.kind === "remote"
-        ? await requestJson(target.host, "/node")
-        : await registeredNode();
+      target.kind === "remote" ? await requestJson(target.host, "/node") : await registeredNode();
     this.context.stdout.write(`${JSON.stringify(node, null, 2)}\n`);
   }
 }

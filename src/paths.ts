@@ -21,8 +21,7 @@ export const nodeDirFor = (nodeName: string): string => {
 export const configPathFor = (nodeName: string): string =>
   interpolateNode(config.configPath, nodeName);
 
-export const configDirAbs = (nodeName: string): string =>
-  join(STACK_DIR, configPathFor(nodeName));
+export const configDirAbs = (nodeName: string): string => join(STACK_DIR, configPathFor(nodeName));
 
 export const sharedPathFor = (): string => config.sharedPath.replace(/\/$/, "");
 
@@ -56,19 +55,13 @@ const yamlFilesIn = async (dir: string): Promise<string[]> => {
     return [];
   }
   return entries
-    .filter(
-      (entry) =>
-        entry.isFile() &&
-        isComposeFile(entry.name) &&
-        !entry.name.startsWith("."),
-    )
+    .filter((entry) => entry.isFile() && isComposeFile(entry.name) && !entry.name.startsWith("."))
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((entry) => join(dir, entry.name));
 };
 
-export const listNodeComposeFiles = async (
-  nodeName: string,
-): Promise<string[]> => yamlFilesIn(join(STACK_DIR, nodeDirFor(nodeName)));
+export const listNodeComposeFiles = async (nodeName: string): Promise<string[]> =>
+  yamlFilesIn(join(STACK_DIR, nodeDirFor(nodeName)));
 
 export const listSharedComposeFiles = async (): Promise<string[]> => {
   const dir = join(STACK_DIR, sharedPathFor());
@@ -91,10 +84,7 @@ export const listSharedComposeFiles = async (): Promise<string[]> => {
   return files;
 };
 
-export const serviceFromConfigFile = (
-  file: string,
-  nodeName: string,
-): string | null => {
+export const serviceFromConfigFile = (file: string, nodeName: string): string | null => {
   const prefix = `${configPathFor(nodeName)}/`;
 
   if (!file.startsWith(prefix)) {
@@ -103,8 +93,7 @@ export const serviceFromConfigFile = (
 
   const rest = file.slice(prefix.length);
   const slash = rest.indexOf("/");
-  const service =
-    slash === -1 ? rest.replace(/\.[^.]+$/, "") : rest.slice(0, slash);
+  const service = slash === -1 ? rest.replace(/\.[^.]+$/, "") : rest.slice(0, slash);
 
   if (!service || service.startsWith(".")) {
     return null;
@@ -113,9 +102,7 @@ export const serviceFromConfigFile = (
   return service;
 };
 
-export const listConfigServices = async (
-  nodeName: string,
-): Promise<string[]> => {
+export const listConfigServices = async (nodeName: string): Promise<string[]> => {
   const entries = await readdir(configDirAbs(nodeName), {
     withFileTypes: true,
   }).catch(() => null);

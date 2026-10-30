@@ -3,8 +3,7 @@ import { matchStack } from "../compose";
 import { config } from "../config";
 import { nodeStacks } from "../sync";
 
-export const unauthorized = () =>
-  Response.json({ error: "Unauthorized" }, { status: 401 });
+export const unauthorized = () => Response.json({ error: "Unauthorized" }, { status: 401 });
 
 export const requireAuth = (req: Request): boolean => {
   if (!config.token) {
@@ -15,10 +14,7 @@ export const requireAuth = (req: Request): boolean => {
 };
 
 export const jsonError = (error: unknown, status = 400) =>
-  Response.json(
-    { error: error instanceof Error ? error.message : String(error) },
-    { status },
-  );
+  Response.json({ error: error instanceof Error ? error.message : String(error) }, { status });
 
 export const wantsPull = (req: Request): boolean => {
   const pull = new URL(req.url).searchParams.get("pull");
@@ -62,17 +58,11 @@ export const firstMatchingStack = async (
     try {
       return await fn(stack.file, node, name);
     } catch (error) {
-      errors.push(
-        `${stack.project}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      errors.push(`${stack.project}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  const available = stacks
-    .map((stack) => basename(stack.file).replace(/\.ya?ml$/i, ""))
-    .join(", ");
+  const available = stacks.map((stack) => basename(stack.file).replace(/\.ya?ml$/i, "")).join(", ");
   throw new Error(
     errors.join("\n") ||
       (name

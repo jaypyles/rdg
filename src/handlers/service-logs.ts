@@ -1,14 +1,7 @@
 import { composeLogs } from "../compose";
-import {
-  firstMatchingStack,
-  jsonError,
-  requireAuth,
-  unauthorized,
-} from "./helpers";
+import { firstMatchingStack, jsonError, requireAuth, unauthorized } from "./helpers";
 
-export const getServiceLogs = async (
-  req: Bun.BunRequest<"/services/:name/logs">
-) => {
+export const getServiceLogs = async (req: Bun.BunRequest<"/services/:name/logs">) => {
   if (!requireAuth(req)) return unauthorized();
   try {
     const tail = new URL(req.url).searchParams.get("tail") ?? "100";

@@ -13,10 +13,7 @@ import { startScheduledTasks } from "./scheduler";
 const noIdleTimeout = <Req extends Request>(
   handler: (req: Req) => Response | Promise<Response>,
 ) => {
-  return (
-    req: Req,
-    server: { timeout: (req: Request, seconds: number) => void },
-  ) => {
+  return (req: Req, server: { timeout: (req: Request, seconds: number) => void }) => {
     server.timeout(req, 0);
     return handler(req);
   };

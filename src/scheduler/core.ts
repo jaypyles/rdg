@@ -213,7 +213,7 @@ export const createScheduler = (): Scheduler => {
     daily,
     stop,
     stopAll: () => {
-      for (const id of [...tasks.keys()]) {
+      for (const id of Array.from(tasks.keys())) {
         stop(id);
       }
     },

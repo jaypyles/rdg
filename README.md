@@ -7,7 +7,11 @@ Bun service that runs on each Docker host. Compose files in git are the source o
 ```bash
 bun install
 bun run dev
+bun run lint
+bun run fmt
 ```
+
+`bun install` installs Husky; pre-commit runs `lint-staged` (oxfmt + oxlint on staged JS/TS, oxfmt on staged JSON/Markdown/YAML).
 
 CLI (`rdg`). From this repo, link it onto your PATH (`~/.bun/bin` must be on `PATH`):
 

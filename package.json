@@ -2,24 +2,40 @@
   "name": "remote-docker-gateway",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "module": "src/index.ts",
   "bin": {
     "rdg": "src/index.ts"
   },
+  "type": "module",
+  "module": "src/index.ts",
   "scripts": {
     "dev": "bun --hot src/index.ts serve",
     "start": "bun src/index.ts serve",
     "rdg": "bun src/index.ts",
-    "link": "bun link"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/react": "^19.3.0"
+    "link": "bun link",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "prepare": "husky"
   },
   "dependencies": {
     "clipanion": "^4.0.0-rc.4",
     "ink": "^8.0.0",
     "react": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.3.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "oxfmt",
+      "oxlint --fix"
+    ],
+    "*.{json,jsonc,md,yaml,yml,css,html}": "oxfmt"
   }
 }

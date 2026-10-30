@@ -1,18 +1,12 @@
 import { composeRestart } from "../compose";
-import {
-  jsonError,
-  requireAuth,
-  unauthorized,
-  wantsPull,
-  withStacks,
-} from "./helpers";
+import { jsonError, requireAuth, unauthorized, wantsPull, withStacks } from "./helpers";
 
 export const postRestart = async (req: Request) => {
   if (!requireAuth(req)) return unauthorized();
   try {
     const pull = wantsPull(req);
     const { node, results } = await withStacks((file, name) =>
-      composeRestart(file, name, undefined, pull)
+      composeRestart(file, name, undefined, pull),
     );
     return Response.json({
       node,

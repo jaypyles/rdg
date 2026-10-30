@@ -39,9 +39,7 @@ export const startComposeSync = (): void => {
       } else if (result.output === "sync already in progress") {
         console.log(`sync skipped ${result.node}: already in progress`);
       } else if (!result.changed) {
-        console.log(
-          `sync idle ${result.node} @ ${result.commit}: nothing to apply`,
-        );
+        console.log(`sync idle ${result.node} @ ${result.commit}: nothing to apply`);
       } else {
         console.log(
           `sync idle ${result.node} @ ${result.commit}: no stacks or configs for this node`,

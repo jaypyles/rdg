@@ -3,9 +3,7 @@ import { requestJson } from "../client";
 import { runMaintenance } from "../scheduler/tasks/maintenance";
 import { RemoteCommand } from "./remote";
 
-const maintenanceTimeoutMs = Number(
-  Bun.env.RDG_MAINTENANCE_TIMEOUT_MS ?? "3600000",
-);
+const maintenanceTimeoutMs = Number(Bun.env.RDG_MAINTENANCE_TIMEOUT_MS ?? "3600000");
 
 export class MaintenanceCommand extends RemoteCommand {
   static paths = [[`maintenance`]];
@@ -24,14 +22,9 @@ export class MaintenanceCommand extends RemoteCommand {
 
     const result =
       target.kind === "remote"
-        ? await requestJson(
-            target.host,
-            "/maintenance",
-            { method: "POST" },
-            maintenanceTimeoutMs,
-          )
+        ? await requestJson(target.host, "/maintenance", { method: "POST" }, maintenanceTimeoutMs)
         : await runMaintenance();
 
     this.context.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   }
-};
+}

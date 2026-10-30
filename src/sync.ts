@@ -5,12 +5,7 @@
 
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  composeDownProject,
-  composeRestartFirstMatch,
-  composeUp,
-  projectName,
-} from "./compose";
+import { composeDownProject, composeRestartFirstMatch, composeUp, projectName } from "./compose";
 import { config } from "./config";
 import {
   STACK_DIR,
@@ -55,9 +50,7 @@ const run = async (cmd: string[], cwd?: string): Promise<string> => {
   ]);
 
   if (exitCode !== 0) {
-    throw new Error(
-      stderr.trim() || stdout.trim() || `${cmd[0]} failed (${exitCode})`,
-    );
+    throw new Error(stderr.trim() || stdout.trim() || `${cmd[0]} failed (${exitCode})`);
   }
 
   return stdout.trim();
@@ -77,18 +70,13 @@ const git = (args: string[], cwd?: string): Promise<string> => {
 
 const repoUrl = (): string => {
   if (!config.composeRepo) {
-    throw new Error(
-      "Set RDG_COMPOSE_REPO to the git URL that holds Compose files",
-    );
+    throw new Error("Set RDG_COMPOSE_REPO to the git URL that holds Compose files");
   }
 
   return config.composeRepo;
 };
 
-const emptyResult = (
-  node: string,
-  extra: Partial<SyncResult> = {},
-): SyncResult => ({
+const emptyResult = (node: string, extra: Partial<SyncResult> = {}): SyncResult => ({
   changed: false,
   applied: false,
   node,
@@ -143,23 +131,14 @@ export const readCache = async (): Promise<CachedApply | null> => {
 const ensureRepo = async (): Promise<void> => {
   await mkdir(NODE_CONFIG_PATH, { recursive: true });
   if (!(await Bun.file(join(STACK_DIR, ".git", "HEAD")).exists())) {
-    await git([
-      "clone",
-      "--branch",
-      config.composeBranch,
-      repoUrl(),
-      STACK_DIR,
-    ]);
+    await git(["clone", "--branch", config.composeBranch, repoUrl(), STACK_DIR]);
     return;
   }
 
   await git(["fetch", "origin", config.composeBranch], STACK_DIR);
 };
 
-const changedFilesBetween = async (
-  from: string,
-  to: string,
-): Promise<string[] | null> => {
+const changedFilesBetween = async (from: string, to: string): Promise<string[] | null> => {
   try {
     const out = await git(["diff", "--name-only", from, to], STACK_DIR);
     return out ? out.split("\n").filter(Boolean) : [];
@@ -182,10 +161,7 @@ export const sync = async (): Promise<SyncResult> => {
     const { name } = await registeredNode();
     await ensureRepo();
 
-    const remoteCommit = await git(
-      ["rev-parse", `origin/${config.composeBranch}`],
-      STACK_DIR,
-    );
+    const remoteCommit = await git(["rev-parse", `origin/${config.composeBranch}`], STACK_DIR);
 
     const previous = await readCache();
     const nodeDir = nodeDirFor(name);
@@ -197,9 +173,7 @@ export const sync = async (): Promise<SyncResult> => {
       });
     }
 
-    const changedFiles = previous
-      ? await changedFilesBetween(previous.commit, remoteCommit)
-      : null;
+    const changedFiles = previous ? await changedFilesBetween(previous.commit, remoteCommit) : null;
 
     await git(["reset", "--hard", `origin/${config.composeBranch}`], STACK_DIR);
 
@@ -208,15 +182,10 @@ export const sync = async (): Promise<SyncResult> => {
     const sharedDir = sharedPathFor();
     const nodeChanges =
       changedFiles?.filter(
-        (file) =>
-          inDir(file, nodeDir) ||
-          inDir(file, configDir) ||
-          inDir(file, sharedDir),
+        (file) => inDir(file, nodeDir) || inDir(file, configDir) || inDir(file, sharedDir),
       ) ?? null;
     const nodeSharedChanged =
-      nodeChanges?.some(
-        (file) => inDir(file, nodeDir) && !isComposeFile(file),
-      ) ?? false;
+      nodeChanges?.some((file) => inDir(file, nodeDir) && !isComposeFile(file)) ?? false;
     const sharedRootChanged =
       nodeChanges?.some((file) => {
         if (file === sharedDir) {
@@ -243,8 +212,7 @@ export const sync = async (): Promise<SyncResult> => {
         }
         const stack = sharedStackName(rel);
         return nodeChanges.some(
-          (changed) =>
-            inDir(changed, sharedDir) && sharedStackName(changed) === stack,
+          (changed) => inDir(changed, sharedDir) && sharedStackName(changed) === stack,
         );
       }
       return nodeSharedChanged || nodeChanges.includes(rel);

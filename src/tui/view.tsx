@@ -37,11 +37,7 @@ const serviceCounts = (host: HostSnapshot): string => {
   const unhealthy = host.services.filter((row) => {
     const label = `${row.state} ${row.health}`.toLowerCase();
 
-    return (
-      label.includes("unhealthy") ||
-      label.includes("exit") ||
-      label.includes("dead")
-    );
+    return label.includes("unhealthy") || label.includes("exit") || label.includes("dead");
   }).length;
 
   if (unhealthy > 0) {
@@ -51,10 +47,7 @@ const serviceCounts = (host: HostSnapshot): string => {
   return `${total} services`;
 };
 
-const healthColor = (
-  value: string,
-  colorize: boolean,
-): string | undefined => {
+const healthColor = (value: string, colorize: boolean): string | undefined => {
   if (!colorize) {
     return undefined;
   }
@@ -72,38 +65,22 @@ const healthColor = (
   return "yellow";
 };
 
-const stateColor = (
-  state: string,
-  health: string,
-  colorize: boolean,
-): string | undefined => {
+const stateColor = (state: string, health: string, colorize: boolean): string | undefined => {
   if (!colorize) {
     return undefined;
   }
 
   const label = `${state} ${health}`.toLowerCase();
 
-  if (
-    label.includes("running") ||
-    label.includes("healthy") ||
-    label.includes("up")
-  ) {
+  if (label.includes("running") || label.includes("healthy") || label.includes("up")) {
     return "green";
   }
 
-  if (
-    label.includes("exit") ||
-    label.includes("dead") ||
-    label.includes("unhealthy")
-  ) {
+  if (label.includes("exit") || label.includes("dead") || label.includes("unhealthy")) {
     return "red";
   }
 
-  if (
-    label.includes("restart") ||
-    label.includes("paused") ||
-    label.includes("created")
-  ) {
+  if (label.includes("restart") || label.includes("paused") || label.includes("created")) {
     return "yellow";
   }
 
@@ -143,27 +120,14 @@ const columnWidths = (
   );
   const state = Math.min(
     24,
-    Math.max(
-      8,
-      ...services.map((row) => stateLabel(row.state, row.health).length),
-      5,
-    ),
+    Math.max(8, ...services.map((row) => stateLabel(row.state, row.health).length), 5),
   );
-  const ports = Math.min(
-    36,
-    Math.max(5, ...services.map((row) => (row.ports || "—").length), 5),
-  );
+  const ports = Math.min(36, Math.max(5, ...services.map((row) => (row.ports || "—").length), 5));
 
   return { name, service, state, ports };
 };
 
-const ServiceTable = ({
-  services,
-  colorize,
-}: {
-  services: ServiceRow[];
-  colorize: boolean;
-}) => {
+const ServiceTable = ({ services, colorize }: { services: ServiceRow[]; colorize: boolean }) => {
   if (services.length === 0) {
     return <Text dimColor={colorize}>(no containers)</Text>;
   }
@@ -177,13 +141,13 @@ const ServiceTable = ({
           <Text dimColor={colorize}>NAME</Text>
         </Box>
         <Box width={widths.service + 2}>
-          <Text dimColor={colorize}>  SERVICE</Text>
+          <Text dimColor={colorize}> SERVICE</Text>
         </Box>
         <Box width={widths.state + 2}>
-          <Text dimColor={colorize}>  STATE</Text>
+          <Text dimColor={colorize}> STATE</Text>
         </Box>
         <Box width={widths.ports + 2}>
-          <Text dimColor={colorize}>  PORTS</Text>
+          <Text dimColor={colorize}> PORTS</Text>
         </Box>
       </Box>
       {services.map((row) => {
@@ -198,7 +162,7 @@ const ServiceTable = ({
               <Text>{truncate(name, widths.name)}</Text>
             </Box>
             <Box width={widths.service + 2}>
-              <Text>  {truncate(service, widths.service)}</Text>
+              <Text> {truncate(service, widths.service)}</Text>
             </Box>
             <Box width={widths.state + 2}>
               <Text color={stateColor(row.state, row.health, colorize)}>
@@ -207,7 +171,7 @@ const ServiceTable = ({
               </Text>
             </Box>
             <Box width={widths.ports + 2}>
-              <Text>  {truncate(ports, widths.ports)}</Text>
+              <Text> {truncate(ports, widths.ports)}</Text>
             </Box>
           </Box>
         );
@@ -245,15 +209,7 @@ const HostPanel = ({
           {selected ? "›" : " "}
           {caret}
         </Text>
-        <Text
-          color={
-            host.reachable && colorize
-              ? "green"
-              : colorize
-                ? "red"
-                : undefined
-          }
-        >
+        <Text color={host.reachable && colorize ? "green" : colorize ? "red" : undefined}>
           {host.reachable ? "●" : "○"}
         </Text>
         <Text>
@@ -262,10 +218,7 @@ const HostPanel = ({
           </Text>
           <Text bold={colorize}>{host.name}</Text>
         </Text>
-        <Text
-          color={host.node && colorize ? "cyan" : undefined}
-          dimColor={!host.node && colorize}
-        >
+        <Text color={host.node && colorize ? "cyan" : undefined} dimColor={!host.node && colorize}>
           {host.node ? `node:${host.node}` : "node:—"}
         </Text>
         <Text color={healthColor(health, colorize)}>{health}</Text>
@@ -274,9 +227,7 @@ const HostPanel = ({
       <Text dimColor={colorize}>{host.url}</Text>
       {expanded ? (
         <Box flexDirection="column" marginTop={1}>
-          {host.error ? (
-            <Text color={colorize ? "red" : undefined}>{host.error}</Text>
-          ) : null}
+          {host.error ? <Text color={colorize ? "red" : undefined}>{host.error}</Text> : null}
           {host.reachable ? (
             <ServiceTable services={host.services} colorize={colorize} />
           ) : !host.error ? (
@@ -309,12 +260,10 @@ export const Dashboard = ({
           <Text bold={colorize}> · node dashboard</Text>
         </Box>
         <Text dimColor={colorize}>
-          refreshed {ago(snapshot.fetchedAt)} · every{" "}
-          {Math.round(intervalMs / 1000)}s
+          refreshed {ago(snapshot.fetchedAt)} · every {Math.round(intervalMs / 1000)}s
         </Text>
         <Text dimColor={colorize}>
-          ↑↓/jk move · ⏎/space toggle · a expand · c collapse · r refresh · q
-          quit
+          ↑↓/jk move · ⏎/space toggle · a expand · c collapse · r refresh · q quit
         </Text>
       </Box>
 

@@ -63,25 +63,23 @@ type AppProps = {
   interactive: boolean;
 };
 
-const App = ({
-  initialSnapshot,
-  intervalMs,
-  colorize,
-  interactive,
-}: AppProps) => {
+const App = ({ initialSnapshot, intervalMs, colorize, interactive }: AppProps) => {
   const { exit } = useApp();
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [selected, setSelected] = useState(0);
-  const [expanded, setExpanded] = useState(() =>
-    defaultExpanded(initialSnapshot),
-  );
+  const [expanded, setExpanded] = useState(() => defaultExpanded(initialSnapshot));
   const loading = useRef(false);
   const closed = useRef(false);
   const snapshotRef = useRef(snapshot);
   const expandedRef = useRef(expanded);
 
-  snapshotRef.current = snapshot;
-  expandedRef.current = expanded;
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
+
+  useEffect(() => {
+    expandedRef.current = expanded;
+  }, [expanded]);
 
   const refresh = async () => {
     if (loading.current || closed.current) {
@@ -97,9 +95,7 @@ const App = ({
         return;
       }
 
-      setExpanded(
-        syncExpanded(snapshotRef.current.hosts, next, expandedRef.current),
-      );
+      setExpanded(syncExpanded(snapshotRef.current.hosts, next, expandedRef.current));
       setSnapshot(next);
     } finally {
       loading.current = false;
@@ -158,10 +154,7 @@ const App = ({
           return;
         }
 
-        setSelected(
-          (value) =>
-            (value - 1 + snapshot.hosts.length) % snapshot.hosts.length,
-        );
+        setSelected((value) => (value - 1 + snapshot.hosts.length) % snapshot.hosts.length);
         return;
       }
 
@@ -189,9 +182,7 @@ const App = ({
   );
 
   const clamped =
-    snapshot.hosts.length === 0
-      ? 0
-      : Math.max(0, Math.min(selected, snapshot.hosts.length - 1));
+    snapshot.hosts.length === 0 ? 0 : Math.max(0, Math.min(selected, snapshot.hosts.length - 1));
 
   return (
     <Dashboard

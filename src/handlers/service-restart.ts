@@ -1,15 +1,7 @@
 import { composeRestart } from "../compose";
-import {
-  firstMatchingStack,
-  jsonError,
-  requireAuth,
-  unauthorized,
-  wantsPull,
-} from "./helpers";
+import { firstMatchingStack, jsonError, requireAuth, unauthorized, wantsPull } from "./helpers";
 
-export const postServiceRestart = async (
-  req: Bun.BunRequest<"/services/:name/restart">
-) => {
+export const postServiceRestart = async (req: Bun.BunRequest<"/services/:name/restart">) => {
   if (!requireAuth(req)) return unauthorized();
   try {
     const pull = wantsPull(req);

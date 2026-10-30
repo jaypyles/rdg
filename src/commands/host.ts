@@ -59,7 +59,10 @@ export class HostAddCommand extends Command {
 }
 
 export class HostRemoveCommand extends Command {
-  static paths = [[`host`, `rm`], [`host`, `remove`]];
+  static paths = [
+    [`host`, `rm`],
+    [`host`, `remove`],
+  ];
 
   static usage = Command.Usage({
     description: `Remove a saved host`,

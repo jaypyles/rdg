@@ -129,9 +129,7 @@ export const loadDashboard = async (): Promise<DashboardSnapshot> => {
   const names = Object.keys(data.hosts).sort();
 
   const hosts = await Promise.all(
-    names.map((name) =>
-      loadHost(name, data.hosts[name], data.default === name),
-    ),
+    names.map((name) => loadHost(name, data.hosts[name], data.default === name)),
   );
 
   return { hosts, fetchedAt: Date.now() };

@@ -85,9 +85,7 @@ export const runMaintenance = async (): Promise<MaintenanceResult> => {
       stopped: files.length,
       started: files.length,
       commandRan,
-      output: commandRan
-        ? `ran ${config.maintenanceCmd}`
-        : "RDG_MAINTENANCE_CMD unset",
+      output: commandRan ? `ran ${config.maintenanceCmd}` : "RDG_MAINTENANCE_CMD unset",
     };
   } finally {
     maintaining = false;
@@ -112,9 +110,7 @@ export const startMaintenance = (): void => {
   const untilMs = msUntilNextLocalTime(hour, minute);
   const untilMin = Math.round(untilMs / 60_000);
 
-  console.log(
-    `maintenance scheduled daily at ${pad(hour)}:${pad(minute)} (in ~${untilMin}m)`,
-  );
+  console.log(`maintenance scheduled daily at ${pad(hour)}:${pad(minute)} (in ~${untilMin}m)`);
 
   scheduler.daily({
     id: TASK_ID,

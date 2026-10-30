@@ -48,10 +48,7 @@ const stackAliases = (stack: ComposeStack): string[] => {
   return aliases.map(normalizeName);
 };
 
-export const matchStack = (
-  stacks: ComposeStack[],
-  name: string,
-): ComposeStack | null => {
+export const matchStack = (stacks: ComposeStack[], name: string): ComposeStack | null => {
   const needle = normalizeName(name);
   const hits = stacks.filter((stack) => {
     const aliases = stackAliases(stack);
@@ -89,7 +86,10 @@ export const composeUp = (composeFile: string, nodeName: string): Promise<string
 export const composeDown = (composeFile: string, nodeName: string): Promise<string> =>
   compose(composeFile, ["down"], nodeName);
 
-export const composeDownProject = async (nodeName: string, stackFileName: string): Promise<string> => {
+export const composeDownProject = async (
+  nodeName: string,
+  stackFileName: string,
+): Promise<string> => {
   const project = projectName(nodeName, stackFileName);
   return run(["docker", "compose", "-p", project, "down"]);
 };
@@ -147,9 +147,7 @@ export const composeRestartFirstMatch = async (
     try {
       return await composeRestart(file, nodeName, service);
     } catch (error) {
-      errors.push(
-        `${basename(file)}: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      errors.push(`${basename(file)}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   throw new Error(errors.join("\n") || `Service "${service}" not found`);

@@ -87,25 +87,13 @@ const color = (value: string, code: string, enabled: boolean): string =>
 
 const colorState = (value: string, enabled: boolean): string => {
   const lower = value.toLowerCase();
-  if (
-    lower.includes("running") ||
-    lower.includes("healthy") ||
-    lower.includes("up")
-  ) {
+  if (lower.includes("running") || lower.includes("healthy") || lower.includes("up")) {
     return color(value, "32", enabled);
   }
-  if (
-    lower.includes("exit") ||
-    lower.includes("dead") ||
-    lower.includes("unhealthy")
-  ) {
+  if (lower.includes("exit") || lower.includes("dead") || lower.includes("unhealthy")) {
     return color(value, "31", enabled);
   }
-  if (
-    lower.includes("restart") ||
-    lower.includes("paused") ||
-    lower.includes("created")
-  ) {
+  if (lower.includes("restart") || lower.includes("paused") || lower.includes("created")) {
     return color(value, "33", enabled);
   }
   return value;
@@ -132,25 +120,12 @@ export const formatPsTable = (body: string, colorize = false): string => {
     IMAGE: row.Image ?? "",
   }));
 
-  const cols = [
-    "NAME",
-    "SERVICE",
-    "PROJECT",
-    "STATE",
-    "PORTS",
-    "IMAGE",
-  ] as const;
+  const cols = ["NAME", "SERVICE", "PROJECT", "STATE", "PORTS", "IMAGE"] as const;
   const widths = Object.fromEntries(
-    cols.map((col) => [
-      col,
-      Math.max(col.length, ...table.map((row) => row[col].length)),
-    ]),
+    cols.map((col) => [col, Math.max(col.length, ...table.map((row) => row[col].length))]),
   ) as Record<(typeof cols)[number], number>;
 
-  const line = (
-    row: Record<(typeof cols)[number], string>,
-    paint = false,
-  ): string =>
+  const line = (row: Record<(typeof cols)[number], string>, paint = false): string =>
     cols
       .map((col) => {
         const cell = pad(row[col], widths[col]);

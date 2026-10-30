@@ -23,10 +23,7 @@ const headersFor = (host: RemoteHost, init?: RequestInit["headers"]): Headers =>
 };
 
 const connectError = (url: string, error: unknown): Error => {
-  if (
-    error instanceof Error &&
-    (error.name === "TimeoutError" || error.name === "AbortError")
-  ) {
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
     return new Error(`Timed out after ${timeoutMs}ms waiting for ${url}`);
   }
   const cause = error instanceof Error ? error.message : String(error);
