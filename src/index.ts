@@ -14,6 +14,7 @@ import { RegisterCommand } from "./commands/register";
 import { RestartCommand } from "./commands/restart";
 import { ServeCommand } from "./commands/serve";
 import { SyncCommand } from "./commands/sync";
+import { TuiCommand } from "./commands/tui";
 
 const cli = new Cli({
   binaryLabel: `Remote Docker Gateway`,
@@ -35,5 +36,6 @@ cli.register(MaintenanceCommand);
 cli.register(PsCommand);
 cli.register(RestartCommand);
 cli.register(LogsCommand);
+cli.register(TuiCommand);
 
 await cli.runExit(process.argv.slice(2));
