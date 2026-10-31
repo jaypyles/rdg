@@ -16,7 +16,7 @@
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "prepare": "husky"
+    "prepare": "bun scripts/prepare-husky.ts"
   },
   "dependencies": {
     "clipanion": "^4.0.0-rc.4",

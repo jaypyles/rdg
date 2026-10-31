@@ -62,7 +62,8 @@ rsync -a --delete \
   "${SOURCE_DIR}/" "${APP_DIR}/"
 
 cd "${APP_DIR}"
-"${BUN_BIN}" install --frozen-lockfile --production
+# Production: no devDependencies (husky, linters). Skip lifecycle scripts too.
+"${BUN_BIN}" install --frozen-lockfile --production --ignore-scripts
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   install -m 640 -o root -g "${SERVICE_GROUP}" \
