@@ -22,14 +22,6 @@ const pipeReadable = (stream: PipeStream, label: string): ReadableStream<Uint8Ar
   return stream;
 };
 
-const readPipeText = async (stream: PipeStream): Promise<string> => {
-  if (stream == null || typeof stream === "number") {
-    return "";
-  }
-
-  return stream.text();
-};
-
 const spawnCompose = (
   composeFile: string,
   args: string[],
@@ -134,6 +126,7 @@ const parseDockerEvent = (line: string): StreamEvent | null => {
 
 async function* readDockerEvents(
   proc: ReturnType<typeof spawnDockerEvents>,
+  signal: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
   let eventsStdout: ReadableStream<Uint8Array>;
 
@@ -147,15 +140,27 @@ async function* readDockerEvents(
   const decoder = new TextDecoder();
   let buffer = "";
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
+  const readAborted = (): Promise<IteratorReturnResult<undefined>> =>
+    new Promise((resolve) => {
+      if (signal.aborted) {
+        resolve({ done: true, value: undefined });
+        return;
+      }
 
-      if (done) {
+      signal.addEventListener("abort", () => resolve({ done: true, value: undefined }), {
+        once: true,
+      });
+    });
+
+  try {
+    while (!signal.aborted) {
+      const result = await Promise.race([reader.read(), readAborted()]);
+
+      if (result.done) {
         break;
       }
 
-      buffer += decoder.decode(value, { stream: true });
+      buffer += decoder.decode(result.value, { stream: true });
       const parts = buffer.split("\n");
       buffer = parts.pop() ?? "";
 
@@ -168,9 +173,23 @@ async function* readDockerEvents(
       }
     }
   } finally {
+    await reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
 }
+
+const stopDockerEvents = (
+  eventsProc: ReturnType<typeof spawnDockerEvents>,
+  eventsAbort: AbortController,
+): void => {
+  eventsAbort.abort();
+
+  try {
+    eventsProc.kill();
+  } catch {
+    // already exited
+  }
+};
 
 async function* mergeStreams(
   left: AsyncGenerator<StreamEvent>,
@@ -259,7 +278,7 @@ export async function* streamComposeRun(
 
   const pumpEvents = (async () => {
     try {
-      for await (const event of readDockerEvents(eventsProc)) {
+      for await (const event of readDockerEvents(eventsProc, eventsAbort.signal)) {
         eventQueue.push(event);
       }
     } catch {
@@ -275,10 +294,7 @@ export async function* streamComposeRun(
     yield chunk;
   }
 
-  const [exitCode, stderrText] = await Promise.all([
-    composeProc.exited,
-    readPipeText(eventsProc.stderr),
-  ]);
+  const exitCode = await composeProc.exited;
 
   const graceUntil = Date.now() + 750;
 
@@ -287,13 +303,12 @@ export async function* streamComposeRun(
     await Bun.sleep(25);
   }
 
-  eventsAbort.abort();
-  await pumpEvents.catch(() => undefined);
+  stopDockerEvents(eventsProc, eventsAbort);
+  void pumpEvents;
   yield* drainQueued(eventQueue);
 
   if (exitCode !== 0) {
-    const message = stderrText.trim() || `docker compose failed (${exitCode})`;
-    yield { type: "error", message };
+    yield { type: "error", message: `docker compose failed (${exitCode})` };
     yield { type: "done", ok: false };
     return;
   }

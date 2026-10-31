@@ -18,7 +18,7 @@ const oxfmtFiles = (filenames: string[]): string | null => {
 
 /** @type {import("lint-staged").Config} */
 export default {
-  "*.{js,jsx,ts,tsx,mjs,cjs}": (filenames) => {
+  "*.{js,jsx,ts,tsx,mjs,cjs}": (filenames: string[]) => {
     const oxfmt = oxfmtFiles(filenames);
 
     if (!oxfmt) {
@@ -29,7 +29,7 @@ export default {
 
     return [oxfmt, `oxlint --fix ${files.map(quote).join(" ")}`];
   },
-  "*.{json,jsonc,md,yaml,yml,css,html}": (filenames) => {
+  "*.{json,jsonc,md,yaml,yml,css,html}": (filenames: string[]) => {
     const command = oxfmtFiles(filenames);
 
     return command ?? [];
