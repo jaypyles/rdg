@@ -11,7 +11,7 @@ bun run lint
 bun run fmt
 ```
 
-`bun install` installs Husky; pre-commit runs `lint-staged` (oxfmt + oxlint on staged JS/TS, oxfmt on staged JSON/Markdown/YAML).
+`bun install` installs Husky; pre-commit runs `lint-staged` from `lint-staged.config.ts` (oxfmt + oxlint on staged JS/TS; oxfmt on other staged text, lockfiles skipped).
 
 CLI (`rdg`). From this repo, link it onto your PATH (`~/.bun/bin` must be on `PATH`):
 

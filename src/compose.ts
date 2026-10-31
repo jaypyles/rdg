@@ -109,24 +109,22 @@ export const composeLogs = (
     nodeName,
   );
 
+export const composeRestartArgs = (service?: string, pull = false): string[] => {
+  if (pull) {
+    return service
+      ? ["up", "-d", "--pull", "always", "--force-recreate", "--no-deps", service]
+      : ["up", "-d", "--pull", "always", "--force-recreate", "--remove-orphans"];
+  }
+
+  return service ? ["restart", service] : ["restart"];
+};
+
 export const composeRestart = (
   composeFile: string,
   nodeName: string,
   service?: string,
   pull = false,
-): Promise<string> => {
-  if (pull) {
-    return compose(
-      composeFile,
-      service
-        ? ["up", "-d", "--pull", "always", "--force-recreate", "--no-deps", service]
-        : ["up", "-d", "--pull", "always", "--force-recreate", "--remove-orphans"],
-      nodeName,
-    );
-  }
-
-  return compose(composeFile, service ? ["restart", service] : ["restart"], nodeName);
-};
+): Promise<string> => compose(composeFile, composeRestartArgs(service, pull), nodeName);
 
 export const composeRestartFirstMatch = async (
   composeFiles: string[],

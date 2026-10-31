@@ -28,3 +28,27 @@ export type SyncResult = {
   restartedServices: string[];
   output: string;
 };
+
+export type StreamErrorEvent = { type: "error"; message: string };
+
+export type StreamDoneEvent = {
+  type: "done";
+  ok: boolean;
+  node?: string;
+  pull?: boolean;
+  output?: string;
+};
+
+export type StreamEvent =
+  | { type: "stack"; project: string; file: string }
+  | { type: "compose"; stream: "stdout" | "stderr"; line: string }
+  | {
+      type: "docker";
+      action: string;
+      id: string;
+      name?: string;
+      status?: string;
+      health?: string;
+    }
+  | StreamErrorEvent
+  | StreamDoneEvent;

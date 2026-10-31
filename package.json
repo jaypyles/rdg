@@ -30,12 +30,5 @@
     "lint-staged": "^17.6.0",
     "oxfmt": "^0.75.0",
     "oxlint": "^1.90.0"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "oxfmt",
-      "oxlint --fix"
-    ],
-    "*.{json,jsonc,md,yaml,yml,css,html}": "oxfmt"
   }
 }

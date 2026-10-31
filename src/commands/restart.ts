@@ -1,7 +1,6 @@
 import { Command, Option } from "clipanion";
-import { composeRestart } from "../compose";
-import { pullTimeoutMs, requestJson } from "../client";
-import { firstMatchingStack, withStacks } from "../handlers/helpers";
+import { streamAllStacksRestart, streamMatchingRestart } from "../handlers/restart-stream";
+import { streamQuery } from "../stream-http";
 import { RemoteCommand } from "./remote";
 
 export class RestartCommand extends RemoteCommand {
@@ -23,35 +22,19 @@ export class RestartCommand extends RemoteCommand {
 
   async execute() {
     const target = await this.target();
+    const query = streamQuery({ pull: this.pull });
+    const path = this.service
+      ? `/services/${encodeURIComponent(this.service)}/restart${query}`
+      : `/restart${query}`;
+
     if (target.kind === "remote") {
-      const query = this.pull ? "?pull=true" : "";
-      const path = this.service
-        ? `/services/${encodeURIComponent(this.service)}/restart${query}`
-        : `/restart${query}`;
-      const result = await requestJson(
-        target.host,
-        path,
-        { method: "POST" },
-        this.pull ? pullTimeoutMs : undefined,
-      );
-      this.context.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-      return;
+      return this.runRemoteStream(target.host, path);
     }
 
     if (this.service) {
-      const output = await firstMatchingStack(
-        (file, node, service) => composeRestart(file, node, service, this.pull),
-        this.service,
-      );
-      this.context.stdout.write(`${output}\n`);
-      return;
+      return this.runLocalStream(streamMatchingRestart(this.service, this.pull));
     }
 
-    const { node, results } = await withStacks((file, name) =>
-      composeRestart(file, name, undefined, this.pull),
-    );
-    this.context.stdout.write(
-      `${JSON.stringify({ node, pull: this.pull, output: results.filter(Boolean).join("\n") }, null, 2)}\n`,
-    );
+    return this.runLocalStream(streamAllStacksRestart(this.pull));
   }
 }
