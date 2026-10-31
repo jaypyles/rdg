@@ -62,9 +62,25 @@ const spawnDockerEvents = (
   );
 };
 
+const waitForAbort = (signal: AbortSignal): Promise<IteratorResult<Uint8Array>> => {
+  const { promise, resolve } = Promise.withResolvers<IteratorResult<Uint8Array>>();
+
+  if (signal.aborted) {
+    resolve({ done: true, value: undefined });
+    return promise;
+  }
+
+  signal.addEventListener("abort", () => resolve({ done: true, value: undefined }), {
+    once: true,
+  });
+
+  return promise;
+};
+
 async function* readLines(
   stream: ReadableStream<Uint8Array>,
   label: "stdout" | "stderr",
+  signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -72,13 +88,19 @@ async function* readLines(
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
+      if (signal?.aborted) {
         break;
       }
 
-      buffer += decoder.decode(value, { stream: true });
+      const result = signal
+        ? await Promise.race([reader.read(), waitForAbort(signal)])
+        : await reader.read();
+
+      if (result.done) {
+        break;
+      }
+
+      buffer += decoder.decode(result.value, { stream: true });
       const parts = buffer.split("\n");
       buffer = parts.pop() ?? "";
 
@@ -97,6 +119,7 @@ async function* readLines(
       yield { type: "compose", stream: label, line: tail };
     }
   } finally {
+    await reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
 }
@@ -140,21 +163,9 @@ async function* readDockerEvents(
   const decoder = new TextDecoder();
   let buffer = "";
 
-  const readAborted = (): Promise<IteratorReturnResult<undefined>> =>
-    new Promise((resolve) => {
-      if (signal.aborted) {
-        resolve({ done: true, value: undefined });
-        return;
-      }
-
-      signal.addEventListener("abort", () => resolve({ done: true, value: undefined }), {
-        once: true,
-      });
-    });
-
   try {
     while (!signal.aborted) {
-      const result = await Promise.race([reader.read(), readAborted()]);
+      const result = await Promise.race([reader.read(), waitForAbort(signal)]);
 
       if (result.done) {
         break;
@@ -276,6 +287,9 @@ export async function* streamComposeRun(
 
   const eventQueue: StreamEvent[] = [];
 
+  const composeAbort = new AbortController();
+  void composeProc.exited.then(() => composeAbort.abort());
+
   const pumpEvents = (async () => {
     try {
       for await (const event of readDockerEvents(eventsProc, eventsAbort.signal)) {
@@ -287,8 +301,8 @@ export async function* streamComposeRun(
   })();
 
   for await (const chunk of mergeStreams(
-    readLines(composeStdout, "stdout"),
-    readLines(composeStderr, "stderr"),
+    readLines(composeStdout, "stdout", composeAbort.signal),
+    readLines(composeStderr, "stderr", composeAbort.signal),
   )) {
     yield* drainQueued(eventQueue);
     yield chunk;
